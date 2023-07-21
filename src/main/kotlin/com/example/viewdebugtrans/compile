@@ -1,0 +1,28 @@
+ val KtFile = e.getData(CommonDataKeys.PSI_FILE)
+val KotlinCompilerIde = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde")
+val CompilerConfiguration = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.config.CompilerConfiguration")
+val ClassBuilderFactory = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.codegen.ClassBuilderFactory")
+val Function1 = KtFile!!.javaClass.classLoader.loadClass("kotlin.jvm.functions.Function1")
+val constructor = KotlinCompilerIde.getConstructor(KtFile::class.java, CompilerConfiguration, ClassBuilderFactory, Function1, Boolean::class.java )
+val com = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde\$Companion")
+com.declaredMethods
+val getDefaultCompilerConfiguration = com.getDeclaredMethod("getDefaultCompilerConfiguration", KtFile::class.java)
+getDefaultCompilerConfiguration.isAccessible = true
+
+//val c = getDefaultCompilerConfiguration.invoke(null, KtFile)
+
+val ClassBuilderFactories = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.codegen.ClassBuilderFactories")
+val BINARIES = ClassBuilderFactories.getDeclaredField("BINARIES").get(null)
+val resolutionFacadeProvider = object : kotlin.jvm.functions.Function1<Any,Any> {
+override fun invoke(p1: Any): Any {
+    val r = KtFile::class.java.classLoader.loadClass("org.jetbrains.kotlin.idea.caches.resolve.ResolutionUtils")
+    val ktElement = KtFile::class.java.classLoader.loadClass("org.jetbrains.kotlin.psi.KtElement")
+    return r.getDeclaredMethod("getResolutionFacade", ktElement).invoke(null, KtFile)
+
+}
+}
+
+val  ccc= constructor.newInstance(KtFile, CompilerConfiguration.newInstance(), BINARIES, resolutionFacadeProvider, false)
+
+val ficompileToDirectoryFiled = KotlinCompilerIde.getDeclaredMethod("compileToBytecode")
+ficompileToDirectoryFiled.invoke(ccc)
