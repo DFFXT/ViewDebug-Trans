@@ -18,6 +18,8 @@ class AdbSendGroup : ActionGroup() {
             actions.add(AdbSendAction(d))
         }
         if (devices.isNotEmpty()) {
+            actions.add(0, DestJavaAction())
+            actions.add(0, DestDxAction())
             actions.add(0, DestInputAction())
         }
         return actions.toTypedArray()

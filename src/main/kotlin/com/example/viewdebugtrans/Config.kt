@@ -3,7 +3,9 @@ package com.example.viewdebugtrans
 import com.google.gson.JsonObject
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.util.PropertiesUtil
 import java.io.File
+import java.util.Properties
 
 object Config {
     private var pkgName: String? = null
@@ -12,21 +14,28 @@ object Config {
             return ProjectManager.getInstance().openProjects.getOrNull(0)?.basePath ?: ""
         }
 
+    var dxPath: String?
+        set(value) {
+            setProperties("dx", value)
+        }
+        get() {
+            return getProperties("dx")
+        }
+
+    var javaPath: String?
+        set(value) {
+            setProperties("java", value)
+        }
+        get() {
+            return getProperties("java")
+        }
+
     fun savePackage(pkgName: String) {
-        val f = File(getIdeaFolder(), "view-debug")
-        println(f.absolutePath)
-        f.writeBytes(pkgName.toByteArray())
+        setProperties("packagePath", pkgName)
     }
 
     fun getPackageName(): String? {
-        if (pkgName == null) {
-            val f = File(getIdeaFolder(), "view-debug")
-            if (f.exists()) {
-                pkgName = String(f.readBytes())
-
-            }
-        }
-        return pkgName
+        return getProperties("packagePath")
     }
 
     /**
@@ -44,14 +53,30 @@ object Config {
     }
 
     fun getConfigRemotePath(): String {
-        return "sdcard/Android/data/$pkgName/cache/view-debug/view-debug-config.json"
+        return "$pkgName/cache/view-debug/view-debug-config.json"
     }
 
     fun getTargetFileDestPath(): String {
-        return "sdcard/Android/data/$pkgName/cache/view-debug/receive/"
+        return "$pkgName/cache/view-debug/receive/"
     }
 
-    fun getIdeaFolder() : String{
+    fun getIdeaFolder(): String {
         return projectPath + File.separator + Project.DIRECTORY_STORE_FOLDER
+    }
+
+    private fun getProperties(key: String): String? {
+        val properties = Properties()
+        File(getIdeaFolder(), "view-debug").inputStream().use {
+            properties.load(it)
+        }
+        return properties.getProperty(key)
+    }
+
+    private fun setProperties(key: String, value: String?) {
+        val properties = Properties()
+        File(getIdeaFolder(), "view-debug").inputStream().use {
+            properties.load(it)
+        }
+        properties.setProperty(key, value ?: "")
     }
 }

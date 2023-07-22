@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.PsiFile
@@ -48,11 +49,9 @@ class AdbSendAction(private val device: String) : AnAction(device) {
     override fun actionPerformed(e: AnActionEvent) {
         val editor = e.getData(PlatformDataKeys.EDITOR)
         if (editor is EditorImpl) {
-            val projectPath = editor.project?.basePath ?: return
             var path = FileDocumentManager.getInstance().getFile(editor.document)?.path ?: return
             // 经过编译的产物路径
-           // path = CompileFileAndSend().compile(path)
-            com(e)
+           path = CompileFileAndSend().compile(path, e)
             val target = File(path)
             if (target.exists()) {
                 val pkgName = Config.getPackageName()
@@ -67,12 +66,14 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                 }
 
                 //showDialog(editor.component)
-
+            } else {
+                show(e.project!!, "不存在$path")
             }
         }
     }
 
     private fun execute(cmd: String): String {
+        show(ProjectManager.getInstance().openProjects.getOrNull(0)!!, cmd)
         return String(Runtime.getRuntime().exec(cmd).inputStream.readBytes())
     }
 
