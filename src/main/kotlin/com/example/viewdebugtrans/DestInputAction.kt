@@ -5,6 +5,18 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 
+class ShowLogAction: AnAction("显示日志") {
+    companion object {
+        val builder = StringBuilder()
+    }
+    override fun actionPerformed(e: AnActionEvent) {
+        var msg = builder.toString()
+        if (msg.isEmpty()) {
+            msg = "NULL"
+        }
+        Messages.showDialog(e.project, msg, "编译日志", arrayOf("确定"), 0, null)
+    }
+}
 class DestInputAction : AnAction("设置输出路径") {
     override fun actionPerformed(e: AnActionEvent) {
         val result = Messages.showInputDialog(e.project, null, "请输入externalCache包名路径", null, Config.getPackageName(), null)
@@ -33,5 +45,8 @@ class DestJavaAction : AnAction("设置java1.8路径") {
 }
 
 fun show(project: Project, text: String) {
+    ShowLogAction.builder.append(text)
+    ShowLogAction.builder.append("\n")
+    ShowLogAction.builder.append("\n")
    //Messages.showInputDialog(project, null, "提示", null, text, null)
 }

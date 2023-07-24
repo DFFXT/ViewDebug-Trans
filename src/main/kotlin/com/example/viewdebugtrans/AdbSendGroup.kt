@@ -21,6 +21,7 @@ class AdbSendGroup : ActionGroup() {
             actions.add(0, DestJavaAction())
             actions.add(0, DestDxAction())
             actions.add(0, DestInputAction())
+            actions.add(0, ShowLogAction())
         }
         return actions.toTypedArray()
     }

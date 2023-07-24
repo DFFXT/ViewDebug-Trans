@@ -47,6 +47,7 @@ processRequestF.invoke(tasktI, location)
 
 class AdbSendAction(private val device: String) : AnAction(device) {
     override fun actionPerformed(e: AnActionEvent) {
+        ShowLogAction.builder.clear()
         val editor = e.getData(PlatformDataKeys.EDITOR)
         if (editor is EditorImpl) {
             var path = FileDocumentManager.getInstance().getFile(editor.document)?.path ?: return
@@ -63,10 +64,12 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                     val destFolder = Config.getTargetFileDestPath()
                     checkRemoteFolder(device, destFolder)
                     pushFile("\"$path\"", destFolder + target.name, device)
+                    Messages.showDialog(e.project, "推送成功", "提示", arrayOf("确定"), 0, null)
                 }
 
                 //showDialog(editor.component)
             } else {
+                Messages.showDialog(e.project, "推送失败，产物文件不存在: $path", "提示", arrayOf("确定"), 0, null)
                 show(e.project!!, "不存在$path")
             }
         }
