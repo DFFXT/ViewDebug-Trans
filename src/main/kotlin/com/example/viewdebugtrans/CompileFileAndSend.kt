@@ -44,7 +44,7 @@ c
 
 
  */
-class CompileFileAndSend {
+class CompileFileAndSend: DxCompiler() {
 
     companion object {
         private var dxPath: String? = null
@@ -52,22 +52,11 @@ class CompileFileAndSend {
 
     fun compile(path: String, e: AnActionEvent): String {
         if (path.endsWith(".java")) {
-            return compileJava(path, "java", "class", getJavacPath())
-        } else if (path.endsWith(".kt")) {
-            val KtFile = e.getData(CommonDataKeys.PSI_FILE)
-            val KotlinCompilerIde = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde")
-            val CompilerConfiguration = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.config.CompilerConfiguration")
-            val ClassBuilderFactory = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.codegen.ClassBuilderFactory")
-            val Function1 = KtFile!!.javaClass.classLoader.loadClass("kotlin.jvm.functions.Function1")
-            val constructor = KotlinCompilerIde.getConstructor(KtFile::class.java, CompilerConfiguration, ClassBuilderFactory, Function1, Boolean::class.java )
-
-            KotlinCompilerIde.getDeclaredMethod("getDefaultCompilerConfiguration")
-
-            val compiler = constructor.newInstance(KtFile)
-            val compileToDirectoryFiled = KotlinCompilerIde::class.java.getDeclaredMethod("compileToDirectory", File::class.java)
-            compileToDirectoryFiled.invoke(compiler, File(Config.getIdeaFolder()))
-
+            //JavaByteCode().getByteCode(e)
             return path
+                //return compileJava(path, "java", "class", getJavacPath())
+        } else if (path.endsWith(".kt")) {
+            return KtCompiler().compile(e)
             //return compileJava(path, "kt", "class", getKtcPath())
         }
         return path
@@ -130,18 +119,5 @@ class CompileFileAndSend {
             println("未生成class文件")
         }
         return path
-    }
-
-    private fun execute(cmd: String, dir: File? = null): String {
-        println("执行：$cmd  on $dir")
-        return String(Runtime.getRuntime().exec(cmd, null, dir).inputStream.readBytes())
-    }
-
-
-    private fun getJavacPath(): String {
-        return execute("where javac").split("\n").map { it.trim() }.getOrNull(0) ?: "javac"
-    }
-    private fun getKtcPath(): String {
-        return execute("where kotlinc").split("\n").map { it.trim() }.getOrNull(0) ?: "kotlinc"
     }
 }
