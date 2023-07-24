@@ -5,10 +5,10 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.PropertiesUtil
 import java.io.File
+import java.io.FileOutputStream
 import java.util.Properties
 
 object Config {
-    private var pkgName: String? = null
     private val projectPath: String
         get() {
             return ProjectManager.getInstance().openProjects.getOrNull(0)?.basePath ?: ""
@@ -53,11 +53,11 @@ object Config {
     }
 
     fun getConfigRemotePath(): String {
-        return "$pkgName/cache/view-debug/view-debug-config.json"
+        return "${getPackageName()}/cache/view-debug/view-debug-config.json"
     }
 
     fun getTargetFileDestPath(): String {
-        return "$pkgName/cache/view-debug/receive/"
+        return "${getPackageName()}/cache/view-debug/receive/"
     }
 
     fun getIdeaFolder(): String {
@@ -66,17 +66,28 @@ object Config {
 
     private fun getProperties(key: String): String? {
         val properties = Properties()
-        File(getIdeaFolder(), "view-debug").inputStream().use {
-            properties.load(it)
+        val file = File(getIdeaFolder(), "view-debug")
+        if (file.exists()) {
+            file.inputStream().use {
+                properties.load(it)
+            }
+            return properties.getProperty(key)
+        } else {
+            return null
         }
-        return properties.getProperty(key)
     }
 
     private fun setProperties(key: String, value: String?) {
         val properties = Properties()
-        File(getIdeaFolder(), "view-debug").inputStream().use {
-            properties.load(it)
+        val file = File(getIdeaFolder(), "view-debug")
+        if (file.exists()) {
+            file.inputStream().use {
+                properties.load(it)
+            }
         }
         properties.setProperty(key, value ?: "")
+        FileOutputStream(File(getIdeaFolder(), "view-debug")).use {
+            properties.store(it, null)
+        }
     }
 }

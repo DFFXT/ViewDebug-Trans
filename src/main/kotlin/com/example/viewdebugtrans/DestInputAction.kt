@@ -33,5 +33,5 @@ class DestJavaAction : AnAction("设置java1.8路径") {
 }
 
 fun show(project: Project, text: String) {
-    Messages.showInputDialog(project, null, "提示", null, text, null)
+   //Messages.showInputDialog(project, null, "提示", null, text, null)
 }

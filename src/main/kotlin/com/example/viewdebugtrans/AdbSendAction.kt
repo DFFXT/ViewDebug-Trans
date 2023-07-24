@@ -89,41 +89,4 @@ class AdbSendAction(private val device: String) : AnAction(device) {
     private fun checkRemoteFolder(device: String, folder: String) {
         execute("adb -s $device shell mkdir \"$folder\"")
     }
-
-    private fun com(e: AnActionEvent) {
-
-        val window = ToolWindowManager.getInstance(e.project!!).getToolWindow("Kotlin Bytecode")
-
-        val KtFile = e.getData(CommonDataKeys.PSI_FILE)
-        val KotlinCompilerIde = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde")
-        val CompilerConfiguration = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.config.CompilerConfiguration")
-        val ClassBuilderFactory = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.codegen.ClassBuilderFactory")
-        val Function1 = KtFile!!.javaClass.classLoader.loadClass("kotlin.jvm.functions.Function1")
-        val constructor = KotlinCompilerIde.getConstructor(KtFile::class.java, CompilerConfiguration, ClassBuilderFactory, Function1, Boolean::class.java )
-        val com = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde\$Companion")
-        com.declaredMethods
-        val getDefaultCompilerConfiguration = com.getDeclaredMethod("getDefaultCompilerConfiguration", KtFile::class.java)
-        getDefaultCompilerConfiguration.isAccessible = true
-
-//val c = getDefaultCompilerConfiguration.invoke(null, KtFile)
-
-        val ClassBuilderFactories = KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.codegen.ClassBuilderFactories")
-        val BINARIES = ClassBuilderFactories.getDeclaredField("BINARIES").get(null)
-        val resolutionFacadeProvider = object : kotlin.jvm.functions.Function1<Any,Any?> {
-            override fun invoke(p1: Any): Any? {
-                //val f =  KtFile::class.java.getDeclaredField("languageVersionSettings")
-                return null
-            }
-        }
-
-        val  ccc= constructor.newInstance(KtFile, CompilerConfiguration.newInstance(), BINARIES, resolutionFacadeProvider, false)
-
-/*val ficompileToDirectoryFiled = KotlinCompilerIde.getDeclaredMethod("compileToDirectory", File::class.java)
-ficompileToDirectoryFiled.invoke(ccc, File(Config.getIdeaFolder()))*/
-
-        KotlinCompilerIde.getDeclaredMethod("compile").invoke(ccc)
-
-
-
-    }
 }
