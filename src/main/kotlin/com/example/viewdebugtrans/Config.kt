@@ -9,10 +9,8 @@ import java.io.FileOutputStream
 import java.util.Properties
 
 object Config {
-    private val projectPath: String
-        get() {
-            return ProjectManager.getInstance().openProjects.getOrNull(0)?.basePath ?: ""
-        }
+    var projectPath: String = ""
+    private set
 
     var dxPath: String?
         set(value) {
@@ -29,6 +27,16 @@ object Config {
         get() {
             return getProperties("java")
         }
+
+    var RFilePath: String?
+        set(value) {
+            setProperties("RPath", value)
+        }
+        get() = getProperties("RPath")
+
+    fun updateProject(project: Project) {
+        projectPath = project.basePath!!
+    }
 
     fun savePackage(pkgName: String) {
         setProperties("packagePath", pkgName)

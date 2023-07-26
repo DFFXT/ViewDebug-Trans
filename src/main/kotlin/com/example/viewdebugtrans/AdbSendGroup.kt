@@ -11,6 +11,9 @@ import java.util.*
  */
 class AdbSendGroup : ActionGroup() {
     override fun getChildren(e: AnActionEvent?): Array<AnAction> {
+        e?.project?.let {
+            Config.updateProject(it)
+        }
         val devices = getDevices()
 
         val actions = ArrayList<AnAction>()
@@ -18,12 +21,19 @@ class AdbSendGroup : ActionGroup() {
             actions.add(AdbSendAction(d))
         }
         if (devices.isNotEmpty()) {
+            actions.add(0, DestRAction())
             actions.add(0, DestJavaAction())
             actions.add(0, DestDxAction())
             actions.add(0, DestInputAction())
             actions.add(0, ShowLogAction())
         }
         return actions.toTypedArray()
+    }
+
+    override fun update(e: AnActionEvent) {
+        super.update(e)
+        val project = e.project
+        e.presentation.isEnabled = project != null
     }
 
     private fun execute(cmd: String): String {

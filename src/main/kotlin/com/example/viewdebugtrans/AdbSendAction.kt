@@ -1,17 +1,13 @@
 package com.example.viewdebugtrans
 
-import com.intellij.extapi.psi.PsiFileBase
+import com.example.viewdebugtrans.R.MakeRClass
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.wm.ToolWindowManager
-import com.intellij.psi.PsiFile
-import org.codehaus.groovy.control.CompilerConfiguration
 import java.io.File
 
 
@@ -47,32 +43,45 @@ processRequestF.invoke(tasktI, location)
 
 class AdbSendAction(private val device: String) : AnAction(device) {
     override fun actionPerformed(e: AnActionEvent) {
-        ShowLogAction.builder.clear()
-        val editor = e.getData(PlatformDataKeys.EDITOR)
-        if (editor is EditorImpl) {
-            var path = FileDocumentManager.getInstance().getFile(editor.document)?.path ?: return
-            // 经过编译的产物路径
-           path = CompileFileAndSend().compile(path, e)
-            val target = File(path)
-            if (target.exists()) {
-                val pkgName = Config.getPackageName()
-                if (pkgName == null) {
-                    DestInputAction().actionPerformed(e);
-                } else {
-                    /*val target = File(projectPath + File.separator + Project.DIRECTORY_STORE_FOLDER + File.separator + "1")
-                    File(path).copyTo(target, true)*/
-                    val destFolder = Config.getTargetFileDestPath()
-                    checkRemoteFolder(device, destFolder)
-                    pushFile("\"$path\"", destFolder + target.name, device)
-                    Messages.showDialog(e.project, "推送成功", "提示", arrayOf("确定"), 0, null)
-                }
+        try {
+            ShowLogAction.builder.clear()
+            val editor = e.getData(PlatformDataKeys.EDITOR)
+            if (editor is EditorImpl) {
+                var path = FileDocumentManager.getInstance().getFile(editor.document)?.path ?: return
+                val makeRClass = MakeRClass()
+                makeRClass.make(e, path)
+                // 经过编译的产物路径
+                path = CompileFileAndSend().compile(path, e)
+                makeRClass.delete()
 
-                //showDialog(editor.component)
-            } else {
-                Messages.showDialog(e.project, "推送失败，产物文件不存在: $path", "提示", arrayOf("确定"), 0, null)
-                show(e.project!!, "不存在$path")
+                val target = File(path)
+                if (target.exists()) {
+                    val pkgName = Config.getPackageName()
+                    if (pkgName == null) {
+                        DestInputAction().actionPerformed(e);
+                    } else {
+                        /*val target = File(projectPath + File.separator + Project.DIRECTORY_STORE_FOLDER + File.separator + "1")
+                        File(path).copyTo(target, true)*/
+                        val destFolder = Config.getTargetFileDestPath()
+                        checkRemoteFolder(device, destFolder)
+                        val result = pushFile("\"$path\"", destFolder + target.name, device)
+                        show(e.project!!, result)
+                        Messages.showDialog(e.project, "推送成功", "提示", arrayOf("确定"), 0, null)
+                    }
+
+                    //showDialog(editor.component)
+                } else {
+                    Messages.showDialog(e.project, "推送失败，产物文件不存在: $path", "提示", arrayOf("确定"), 0, null)
+                    show(e.project!!, "不存在$path")
+                }
             }
+        } catch (exception: Exception) {
+            show(
+                project = e.project!!, exception.message + "\n" +
+                        exception.stackTraceToString()
+            )
         }
+
     }
 
     private fun execute(cmd: String): String {
