@@ -54,7 +54,7 @@ class DestRAction : AnAction("设置R文件相对路径") {
         }
     }
 }
-fun show(project: Project, text: String) {
+fun show(project: Project?, text: String) {
     ShowLogAction.builder.append(text)
     ShowLogAction.builder.append("\n")
     ShowLogAction.builder.append("\n")

@@ -62,6 +62,10 @@ class CompileFileAndSend: DxCompiler() {
         return path
     }
 
+    /**
+     * 使用javac编译java文件
+     */
+    @Deprecated("这个方法只能编译无三方依赖的java类，如果能得到java所有依赖路径，就可以编译")
     private fun compileJava(path: String, suffix: String, toSuffix: String, compilerPath: String): String {
         val tag = "package "
         val line = File(path).readLines().find { it.startsWith(tag) }

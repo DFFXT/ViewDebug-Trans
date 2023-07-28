@@ -1,5 +1,6 @@
 package com.example.viewdebugtrans
 
+import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
@@ -49,10 +50,17 @@ object Config {
     /**
      * 输出配置文件，用于文件推送
      */
-    fun saveConfig(path: String) {
+    fun saveConfig(fileItems: List<AdbSendAction.FileItem>) {
         val config = getConfigFile()
         val json = JsonObject()
-        json.addProperty("file", path)
+        val arr = JsonArray()
+        fileItems.forEach {
+            val item = JsonObject()
+            item.addProperty("file", it.path)
+            item.addProperty("type", it.type)
+            arr.add(item)
+        }
+        json.add("config", arr)
         config.writeBytes(json.toString().toByteArray())
     }
 
