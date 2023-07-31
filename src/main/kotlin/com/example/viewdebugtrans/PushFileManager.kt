@@ -12,6 +12,12 @@ object PushFileManager {
 
     private var device: String? = null
 
+    const val TYPE_LAYOUT = "layout"
+    const val TYPE_DRAWABLE = "drawable"
+    const val TYPE_COLOR = "color"
+    const val TYPE_ANIM = "anim"
+    const val TYPE_FILE = "file"
+
     /**
      * 初始化
      */
@@ -24,7 +30,7 @@ object PushFileManager {
         return String(Runtime.getRuntime().exec(cmd).inputStream.readBytes())
     }
 
-    fun pushFile(target: String, dest: String, type: String = "file"): String {
+    fun pushFile(target: String, dest: String, type: String = TYPE_FILE): String {
         // Config.saveConfig(dest, type)
         addFileItem(dest, type)
         // 先推送文件

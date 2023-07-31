@@ -6,14 +6,8 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.module.ModuleManager
-import com.intellij.openapi.module.ModuleUtil
-import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.roots.CompilerModuleExtension
-import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.ui.Messages
 import java.io.File
-import java.util.LinkedList
 
 
 /**
@@ -55,6 +49,8 @@ class AdbSendAction(private val device: String) : AnAction(device) {
             val project = e.project ?: return
             if (editor is EditorImpl) {
                 var path = FileDocumentManager.getInstance().getFile(editor.document)?.path ?: return
+                val originPath = path
+                var fileType: String = getFileType(originPath)
                 if (path.endsWith(".java") || path.endsWith(".kt")) {
                     // 代码文件，需要编译和R文件
                     val makeRClass = MakeRClass()
@@ -62,7 +58,7 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                     // 经过编译的产物路径
                     path = CompileFileAndSend().compile(path, e)
                     makeRClass.delete()
-                } else if (path.endsWith(".xml")) {
+                } else if (path.endsWith(".xml") && fileType == PushFileManager.TYPE_LAYOUT) {
                     XmlRulesSend().send(project)
                 }
 
@@ -72,11 +68,9 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                     if (pkgName == null) {
                         DestInputAction().actionPerformed(e);
                     } else {
-                        /*val target = File(projectPath + File.separator + Project.DIRECTORY_STORE_FOLDER + File.separator + "1")
-                        File(path).copyTo(target, true)*/
                         val destFolder = Config.getTargetFileDestPath()
                         PushFileManager.checkRemoteFolder(device, destFolder)
-                        val result = PushFileManager.pushFile("\"$path\"", destFolder + target.name, device)
+                        val result = PushFileManager.pushFile("\"$path\"", destFolder + target.name, fileType)
                         show(e.project!!, result)
                         Messages.showDialog(e.project, "推送成功", "提示", arrayOf("确定"), 0, null)
                     }
@@ -97,6 +91,24 @@ class AdbSendAction(private val device: String) : AnAction(device) {
             PushFileManager.reset()
         }
 
+    }
+
+    private fun getFileType(path: String): String {
+        val file = File(path)
+        val parent = file.parent
+        if (parent.contains(PushFileManager.TYPE_DRAWABLE)) {
+            return PushFileManager.TYPE_DRAWABLE
+        }
+        if (parent.contains(PushFileManager.TYPE_LAYOUT)) {
+            return PushFileManager.TYPE_LAYOUT
+        }
+        if (parent.contains(PushFileManager.TYPE_ANIM)) {
+            return PushFileManager.TYPE_ANIM
+        }
+        if (parent.contains(PushFileManager.TYPE_COLOR)) {
+            return PushFileManager.TYPE_COLOR
+        }
+        return PushFileManager.TYPE_FILE
     }
 
 }
