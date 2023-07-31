@@ -47,10 +47,9 @@ processRequestF.invoke(tasktI, location)
  */
 
 class AdbSendAction(private val device: String) : AnAction(device) {
-    private val sendAction = LinkedList<FileItem>()
     override fun actionPerformed(e: AnActionEvent) {
         try {
-            sendAction.clear()
+            PushFileManager.init(device)
             ShowLogAction.builder.clear()
             val editor = e.getData(PlatformDataKeys.EDITOR)
             val project = e.project ?: return
@@ -64,46 +63,7 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                     path = CompileFileAndSend().compile(path, e)
                     makeRClass.delete()
                 } else if (path.endsWith(".xml")) {
-                    val rulePathsSet = HashSet<String>()
-                    val logSet = LinkedHashSet<String>()
-                    ModuleManager.getInstance(project).modules.forEachIndexed { index, it ->
-                        //val path = CompilerModuleExtension.getInstance(it)?.compilerOutputPath?.path
-                        val basePath = CompilerModuleExtension.getInstance(it)?.compilerOutputPath?.path?.replace('\\','/')
-                        if (basePath != null) {
-                            val index = basePath.indexOf("/build/")
-                            if (index > 0) {
-                                // xml文件，需要xml规则文件
-                                val rulesPath =  basePath.substring(0, index) + "/build/intermediates/incremental"
-                                val ruleFileDir = File(rulesPath)
-                                if (ruleFileDir.exists()) {
-                                    // 选择对应merge文件夹，过滤AndroidTestResources类型文件夹
-                                    val folder = ruleFileDir.listFiles()?.find { it.name.startsWith("merge") && it.name.endsWith("Resources") && !it.name.endsWith("AndroidTestResources") }
-                                    if (folder != null) {
-                                        // 需要设置不同的名称
-                                        val ruleFile = File(folder, "merger.xml")
-                                        if (ruleFile.exists()) {
-                                            // 过滤相同文件
-                                            if (!rulePathsSet.contains(ruleFile.absolutePath)) {
-                                                rulePathsSet.add(ruleFile.absolutePath)
-                                                // 推送规则文件
-                                                show(project, "找到规则文件-----：$ruleFile")
-                                                pushFile(ruleFile.absolutePath, Config.getTargetFileDestPath() + "merger-${index}.xml", device, "rules")
-                                            }
-                                        } else {
-                                            logSet.add("没有规则文件：$ruleFile")
-                                        }
-                                    } else {
-                                        logSet.add("没有规则文件：$rulesPath")
-                                    }
-                                }
-                            }
-
-                        }
-                    }
-                    logSet.forEach {
-                        show(project, it)
-                    }
-
+                    XmlRulesSend().send(project)
                 }
 
                 val target = File(path)
@@ -115,12 +75,12 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                         /*val target = File(projectPath + File.separator + Project.DIRECTORY_STORE_FOLDER + File.separator + "1")
                         File(path).copyTo(target, true)*/
                         val destFolder = Config.getTargetFileDestPath()
-                        checkRemoteFolder(device, destFolder)
-                        val result = pushFile("\"$path\"", destFolder + target.name, device)
+                        PushFileManager.checkRemoteFolder(device, destFolder)
+                        val result = PushFileManager.pushFile("\"$path\"", destFolder + target.name, device)
                         show(e.project!!, result)
                         Messages.showDialog(e.project, "推送成功", "提示", arrayOf("确定"), 0, null)
                     }
-                    pushApply()
+                    PushFileManager.pushApply()
 
                     //showDialog(editor.component)
                 } else {
@@ -133,43 +93,10 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                 project = e.project!!, exception.message + "\n" +
                         exception.stackTraceToString()
             )
+        }finally {
+            PushFileManager.reset()
         }
 
     }
 
-    private fun execute(cmd: String): String {
-        show(ProjectManager.getInstance().openProjects.getOrNull(0)!!, cmd)
-        return String(Runtime.getRuntime().exec(cmd).inputStream.readBytes())
-    }
-
-    private fun pushFile(target: String, dest: String, device: String, type: String = "file"): String {
-        // Config.saveConfig(dest, type)
-        addFileItem(dest, type)
-        // 先推送文件
-        return execute("adb -s $device push $target $dest")
-        // 再推送config文件
-
-        // return execute("adb -s $device push \"${Config.getConfigFile().absolutePath}\" ${Config.getConfigRemotePath()}")
-    }
-
-
-    private fun checkRemoteFolder(device: String, folder: String) {
-        execute("adb -s $device shell mkdir \"$folder\"")
-    }
-
-    /**
-     * 推送配置文件
-     */
-    private fun pushApply() {
-        if (sendAction.isNotEmpty()) {
-            Config.saveConfig(sendAction)
-            execute("adb -s $device push \"${Config.getConfigFile().absolutePath}\" ${Config.getConfigRemotePath()}")
-        }
-    }
-
-
-    fun addFileItem(path: String, type: String) {
-        sendAction.add(FileItem(path, type))
-    }
-    class FileItem(val path: String, val type: String)
 }

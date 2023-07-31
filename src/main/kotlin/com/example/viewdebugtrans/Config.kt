@@ -50,7 +50,7 @@ object Config {
     /**
      * 输出配置文件，用于文件推送
      */
-    fun saveConfig(fileItems: List<AdbSendAction.FileItem>) {
+    fun saveConfig(fileItems: List<PushFileManager.FileItem>) {
         val config = getConfigFile()
         val json = JsonObject()
         val arr = JsonArray()
