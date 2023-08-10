@@ -25,10 +25,9 @@ object PushFileManager {
         this.device = device
     }
 
-    private fun execute(cmd: String): String {
-        show(ProjectManager.getInstance().openProjects.getOrNull(0)!!, cmd)
+   /* private fun execute(cmd: String): String {
         return String(Runtime.getRuntime().exec(cmd).inputStream.readBytes())
-    }
+    }*/
 
     fun pushFile(target: String, dest: String, type: String = TYPE_FILE): String {
         // Config.saveConfig(dest, type)

@@ -20,6 +20,15 @@ object Config {
         get() {
             return getProperties("dx")
         }
+    var dxVersion: String = ""
+
+    var adbPath: String?
+        set(value) {
+            setProperties("adbPath", value)
+        }
+        get() {
+            return getProperties("adbPath")
+        }
 
     var javaPath: String?
         set(value) {

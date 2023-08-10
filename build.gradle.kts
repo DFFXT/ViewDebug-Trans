@@ -33,7 +33,7 @@ tasks {
         /*sinceBuild.set("212")
         untilBuild.set("222.*")*/
         sinceBuild.set("209")
-        untilBuild.set("222.*")
+        untilBuild.set("252.*")
     }
 
     signPlugin {

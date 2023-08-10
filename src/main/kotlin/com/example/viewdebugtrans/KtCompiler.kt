@@ -2,10 +2,8 @@ package com.example.viewdebugtrans
 
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.ClassVisitor
-import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Opcodes
+import com.intellij.psi.PsiFile
+import org.objectweb.asm.*
 import org.objectweb.asm.Opcodes.ACC_PUBLIC
 import java.io.File
 import java.io.FileOutputStream
@@ -23,6 +21,9 @@ class KtCompiler : DxCompiler() {
     fun compile(e: AnActionEvent): String {
         // 得到KtFile对象，这个对象是kotlin插件中声明的，其类加载器能够加载kotlin插件中的其它类
         val KtFile = e.getData(CommonDataKeys.PSI_FILE)
+        if (KtFile is PsiFile) {
+            show(null, "编译文件："+KtFile.toString())
+        }
         // 通过kotlin插件的类加载器加载KotlinCompilerIde对象
         val KotlinCompilerIde =
             KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde")
@@ -134,10 +135,21 @@ class KtCompiler : DxCompiler() {
                 super.visit(version, access, name, signature, superName, interfaces)
             }
 
-            override fun visitEnd() {
+            override fun visitMethod(
+                access: Int,
+                name: String?,
+                descriptor: String?,
+                signature: String?,
+                exceptions: Array<out String>?
+            ): MethodVisitor {
+                show(null, "fun $name")
+                return super.visitMethod(access, name, descriptor, signature, exceptions)
+            }
 
+            override fun visitEnd() {
+                // 暂给所有类添加这个特殊可重载空方法
                 val methodVisitor = writer.visitMethod(
-                    ACC_PUBLIC or Opcodes.ACC_FINAL,
+                    ACC_PUBLIC,
                     "_\$_clearFindViewByIdCache",
                     "()V",
                     null,

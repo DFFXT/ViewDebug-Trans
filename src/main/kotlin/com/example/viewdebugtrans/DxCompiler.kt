@@ -14,10 +14,15 @@ open abstract class DxCompiler() {
         if (dxPath != null) {
             //val relativeClassPath = relativeJavaPath.replace(".$suffix", ".$toSuffix")
             //val outputDexPath = "${Config.getIdeaFolder()}/view-debug.dex"
-            execute(
-                "$dxPath --dex --output=\"$output\" \"$jarPath\"",
+            /**
+             * 这里需要注意，dx工具默认是api 13，但是interface default 方法和static方法需要api>=24
+             * 如果不设置版本号则编译失败
+             * 这里设置版本号为26
+             */
+            show(null,execute(
+                "$dxPath --dex --min-sdk-version=25 --output=\"$output\" \"$jarPath\"",
                 /*File(dir)*/
-            )
+            ))
             // 生成了dex文件
             if (!File(output).exists()) {
                 println("未生成dex")
@@ -28,8 +33,14 @@ open abstract class DxCompiler() {
     }
 
     private fun tryGetDxPath() {
-        val adbPaths = execute("where adb").split("\n").map { it.trim() }
-        val recommendPath = adbPaths.find { it.contains("platform-tools") }
+        val adbPath = Config.adbPath
+        val recommendPath = if (!adbPath.isNullOrEmpty()) {
+            adbPath
+        } else {
+            val adbPaths = execute("where adb").split("\n").map { it.trim() }
+            adbPaths.find { it.contains("platform-tools") }
+        }
+
         if (recommendPath != null) {
             val adbFile = File(recommendPath)
             val buildTools = File(adbFile.parentFile.parentFile, "build-tools")
@@ -42,11 +53,10 @@ open abstract class DxCompiler() {
         }
     }
 
-    protected fun execute(cmd: String, dir: File? = null): String {
+    /*protected fun execute(cmd: String, dir: File? = null): String {
         println("执行：$cmd  on $dir")
         return String(Runtime.getRuntime().exec(cmd, null, dir).inputStream.readBytes())
-    }
-
+    }*/
 
     protected fun getJavacPath(): String {
         return execute("where javac").split("\n").map { it.trim() }.getOrNull(0) ?: "javac"

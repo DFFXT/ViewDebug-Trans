@@ -28,6 +28,15 @@ class DestInputAction : AnAction("设置输出路径") {
     }
 }
 
+class DestADBAction : AnAction("设置adb路径") {
+    override fun actionPerformed(e: AnActionEvent) {
+        val result = Messages.showInputDialog(e.project, null, "请输入adb路径", null, Config.adbPath, null)
+        if (result != null) {
+            Config.adbPath = result
+        }
+    }
+}
+
 class DestDxAction : AnAction("设置dx路径") {
     override fun actionPerformed(e: AnActionEvent) {
         val result = Messages.showInputDialog(e.project, null, "请输入dx路径", null, Config.dxPath, null)

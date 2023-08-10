@@ -24,6 +24,7 @@ class AdbSendGroup : ActionGroup() {
             actions.add(0, DestRAction())
             actions.add(0, DestJavaAction())
             actions.add(0, DestDxAction())
+            actions.add(0, DestADBAction())
             actions.add(0, DestInputAction())
             actions.add(0, ShowLogAction())
         }
@@ -36,12 +37,16 @@ class AdbSendGroup : ActionGroup() {
         e.presentation.isEnabled = project != null
     }
 
-    private fun execute(cmd: String): String {
-        return String(Runtime.getRuntime().exec(cmd).inputStream.readBytes())
-    }
+/*    private fun execute(cmd: String): String {
+        var changedCmd = cmd
+        val adbPath = Config.adbPath
+        if (cmd.startsWith("adb") && !adbPath.isNullOrEmpty()) {
+            changedCmd = "$adbPath/adb.exe"
+        }
+        return String(Runtime.getRuntime().exec(changedCmd).inputStream.readBytes())
+    }*/
 
     private fun getDevices(): List<String> {
-        execute("adb devices")
         val result = execute("adb devices")
         val list = result.split("\n")
         val devices = LinkedList<String>()
