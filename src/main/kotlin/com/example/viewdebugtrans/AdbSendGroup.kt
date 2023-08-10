@@ -20,14 +20,12 @@ class AdbSendGroup : ActionGroup() {
         for (d in devices) {
             actions.add(AdbSendAction(d))
         }
-        if (devices.isNotEmpty()) {
-            actions.add(0, DestRAction())
-            actions.add(0, DestJavaAction())
-            actions.add(0, DestDxAction())
-            actions.add(0, DestADBAction())
-            actions.add(0, DestInputAction())
-            actions.add(0, ShowLogAction())
-        }
+        actions.add(0, DestRAction())
+        actions.add(0, DestJavaAction())
+        actions.add(0, DestDxAction())
+        actions.add(0, DestADBAction())
+        actions.add(0, DestInputAction())
+        actions.add(0, ShowLogAction())
         return actions.toTypedArray()
     }
 

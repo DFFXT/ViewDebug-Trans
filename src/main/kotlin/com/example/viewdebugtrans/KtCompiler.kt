@@ -3,8 +3,7 @@ package com.example.viewdebugtrans
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.psi.PsiFile
-import org.objectweb.asm.*
-import org.objectweb.asm.Opcodes.ACC_PUBLIC
+import org.jetbrains.org.objectweb.asm.*
 import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
@@ -142,14 +141,14 @@ class KtCompiler : DxCompiler() {
                 signature: String?,
                 exceptions: Array<out String>?
             ): MethodVisitor {
-                show(null, "fun $name")
+                //show(null, "fun $name")
                 return super.visitMethod(access, name, descriptor, signature, exceptions)
             }
 
             override fun visitEnd() {
                 // 暂给所有类添加这个特殊可重载空方法
                 val methodVisitor = writer.visitMethod(
-                    ACC_PUBLIC,
+                    Opcodes.ACC_PUBLIC,
                     "_\$_clearFindViewByIdCache",
                     "()V",
                     null,
@@ -162,7 +161,7 @@ class KtCompiler : DxCompiler() {
                 super.visitEnd()
             }
         }
-        reader.accept(visitor, 0)
+        reader.accept(visitor, ClassReader.EXPAND_FRAMES)
         return writer.toByteArray()
     }
 }

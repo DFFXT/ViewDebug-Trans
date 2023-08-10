@@ -25,10 +25,10 @@ open abstract class DxCompiler() {
             ))
             // 生成了dex文件
             if (!File(output).exists()) {
-                println("未生成dex")
+                show(null, "未生成dex")
             }
         } else {
-            println("没有找到dx路径")
+            show(null, "没有找到dx路径")
         }
     }
 

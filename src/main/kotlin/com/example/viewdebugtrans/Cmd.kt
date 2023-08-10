@@ -9,7 +9,7 @@ fun execute(cmd: String, dir: File? = null): String {
         changedCmd = "$adbPath/adb.exe" + cmd.substring(3)
     }
     show(null, "执行：$changedCmd")
-    val result = String(Runtime.getRuntime().exec(changedCmd, emptyArray(), dir).inputStream.readBytes())
+    val result = String(Runtime.getRuntime().exec(changedCmd, null, dir).inputStream.readBytes())
     show(null, "执行结果：$result")
     return result
 }
