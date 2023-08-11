@@ -2,6 +2,7 @@ package com.example.viewdebugtrans
 
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import org.jetbrains.org.objectweb.asm.*
 import java.io.File
@@ -12,7 +13,7 @@ import java.util.zip.ZipOutputStream
 /**
  * 使用kotlin插件的【Show Kotlin Bytecode】功能编译代码
  */
-class KtCompiler : DxCompiler() {
+class KtCompiler(project: Project) : DxCompiler(project) {
 
     /**
      * @return 编译后的dex路径

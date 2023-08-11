@@ -1,6 +1,7 @@
 package com.example.viewdebugtrans
 
 import com.intellij.openapi.project.ProjectManager
+import java.io.File
 import java.util.*
 
 /**
@@ -17,6 +18,7 @@ object PushFileManager {
     const val TYPE_COLOR = "color"
     const val TYPE_ANIM = "anim"
     const val TYPE_FILE = "file"
+    const val TYPE_DEX = "dex"
 
     /**
      * 初始化
@@ -31,17 +33,17 @@ object PushFileManager {
 
     fun pushFile(target: String, dest: String, type: String = TYPE_FILE): String {
         // Config.saveConfig(dest, type)
-        addFileItem(dest, type)
+        addFileItem(target, dest, type)
         // 先推送文件
-        return execute("adb -s $device push $target $dest")
-        // 再推送config文件
-
-        // return execute("adb -s $device push \"${Config.getConfigFile().absolutePath}\" ${Config.getConfigRemotePath()}")
+        return execute(arrayOf(
+            "adb", "-s", device!!, "push" , target, dest
+        ))
     }
 
 
     fun checkRemoteFolder(device: String, folder: String) {
-        execute("adb -s $device shell mkdir \"$folder\"")
+        execute(arrayOf("adb", "-s", device, "shell", "mkdir", folder))
+        //execute("adb -s $device shell mkdir \"$folder\"")
     }
 
     /**
@@ -50,7 +52,20 @@ object PushFileManager {
     fun pushApply() {
         if (sendAction.isNotEmpty()) {
             Config.saveConfig(sendAction)
-            execute("adb -s $device push \"${Config.getConfigFile().absolutePath}\" ${Config.getConfigRemotePath()}")
+            val cmd = arrayOf(
+                "adb",
+                "-s",
+                device!!,
+                "push",
+                Config.getConfigFile().absolutePath,
+                Config.getConfigRemotePath()
+            )
+            execute(cmd)
+            sendAction.forEach {
+                if (it.type == TYPE_DEX) {
+                    File(it.target).delete()
+                }
+            }
         }
     }
 
@@ -58,8 +73,8 @@ object PushFileManager {
     /**
      * 添加要推送的文件
      */
-    private fun addFileItem(path: String, type: String) {
-        sendAction.add(FileItem(path, type))
+    private fun addFileItem(target: String, path: String, type: String) {
+        sendAction.add(FileItem(target, path, type))
     }
 
     fun reset() {
@@ -67,5 +82,10 @@ object PushFileManager {
         sendAction.clear()
     }
 
-    class FileItem(val path: String, val type: String)
+    /**
+     * @param target 要推送的文件
+     * @param path 要推送到的远程地址
+     * @param type 文件类型
+     */
+    class FileItem(val target: String, val path: String, val type: String)
 }

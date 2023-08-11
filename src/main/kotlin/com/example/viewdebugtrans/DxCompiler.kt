@@ -1,16 +1,19 @@
 package com.example.viewdebugtrans
 
 import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import java.io.File
 
-open abstract class DxCompiler() {
+open abstract class DxCompiler(val project: Project) {
 
 
     fun dxCompileJar(jarPath: String, output: String) {
-        val dxPath = Config.dxPath
+        var dxPath = Config.dxPath
         if (dxPath == null) {
             tryGetDxPath()
         }
+        dxPath = Config.dxPath
         if (dxPath != null) {
             //val relativeClassPath = relativeJavaPath.replace(".$suffix", ".$toSuffix")
             //val outputDexPath = "${Config.getIdeaFolder()}/view-debug.dex"
@@ -19,10 +22,17 @@ open abstract class DxCompiler() {
              * 如果不设置版本号则编译失败
              * 这里设置版本号为26
              */
-            show(null,execute(
-                "$dxPath --dex --min-sdk-version=25 --output=\"$output\" \"$jarPath\"",
-                /*File(dir)*/
+            execute(arrayOf(
+                dxPath,
+                "--dex",
+                "--min-sdk-version=25",
+                "--output=$output",
+                jarPath
             ))
+            /*show(null,execute(
+                "$dxPath --dex --min-sdk-version=25 --output=\"$output\" \"$jarPath\"",
+                *//*File(dir)*//*
+            ))*/
             // 生成了dex文件
             if (!File(output).exists()) {
                 show(null, "未生成dex")
@@ -35,7 +45,7 @@ open abstract class DxCompiler() {
     private fun tryGetDxPath() {
         val adbPath = Config.adbPath
         val recommendPath = if (!adbPath.isNullOrEmpty()) {
-            adbPath
+            "$adbPath/adb.exe"
         } else {
             val adbPaths = execute("where adb").split("\n").map { it.trim() }
             adbPaths.find { it.contains("platform-tools") }
@@ -50,6 +60,8 @@ open abstract class DxCompiler() {
                     Config.dxPath = dxPath
                 }
             }
+        } else {
+            Messages.showDialog(project, "没有找到dx路径", "-", arrayOf("确定"), 0, null)
         }
     }
 

@@ -2,6 +2,7 @@ package com.example.viewdebugtrans
 
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.project.Project
 import java.io.File
 import java.util.regex.Pattern
 
@@ -44,7 +45,7 @@ c
 
 
  */
-class CompileFileAndSend: DxCompiler() {
+class CompileFileAndSend(project: Project): DxCompiler(project) {
 
     companion object {
         private var dxPath: String? = null
@@ -56,8 +57,7 @@ class CompileFileAndSend: DxCompiler() {
             return path
                 //return compileJava(path, "java", "class", getJavacPath())
         } else if (path.endsWith(".kt")) {
-            return KtCompiler().compile(e)
-            //return compileJava(path, "kt", "class", getKtcPath())
+            return KtCompiler(project).compile(e)
         }
         return path
     }
@@ -108,10 +108,11 @@ class CompileFileAndSend: DxCompiler() {
             if (dxPath != null) {
                 val relativeClassPath = relativeJavaPath.replace(".$suffix", ".$toSuffix")
                 val outputDexPath = "${Config.getIdeaFolder()}/view-debug.dex"
-                execute(
+                execute(arrayOf(dxPath!!, "--dex", "--output=$outputDexPath", relativeClassPath), File(dir))
+                /*execute(
                     "$dxPath --dex --output=\"$outputDexPath\" \"$relativeClassPath\"",
                     File(dir)
-                )
+                )*/
                 // 生成了dex文件
                 if (File(outputDexPath).exists()) {
                     return outputDexPath

@@ -15,34 +15,35 @@ object Config {
 
     var dxPath: String?
         set(value) {
-            setProperties("dx", value)
+            // windows上反斜杠替换
+            setProperties("dx", value?.replace('\\', '/'))
         }
         get() {
-            return getProperties("dx")
+            return getProperties("dx")?.replace('\\', '/')
         }
     var dxVersion: String = ""
 
     var adbPath: String?
         set(value) {
-            setProperties("adbPath", value)
+            setProperties("adbPath", value?.replace('\\', '/'))
         }
         get() {
-            return getProperties("adbPath")
+            return getProperties("adbPath")?.replace('\\', '/')
         }
 
     var javaPath: String?
         set(value) {
-            setProperties("java", value)
+            setProperties("java", value?.replace('\\', '/'))
         }
         get() {
-            return getProperties("java")
+            return getProperties("java")?.replace('\\', '/')
         }
 
     var RFilePath: String?
         set(value) {
-            setProperties("RPath", value)
+            setProperties("RPath", value?.replace('\\', '/'))
         }
-        get() = getProperties("RPath")
+        get() = getProperties("RPath")?.replace('\\', '/')
 
     fun updateProject(project: Project) {
         projectPath = project.basePath!!

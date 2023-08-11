@@ -56,8 +56,11 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                     val makeRClass = MakeRClass()
                     makeRClass.make(e, path)
                     // 经过编译的产物路径
-                    path = CompileFileAndSend().compile(path, e)
+                    path = CompileFileAndSend(project).compile(path, e)
                     makeRClass.delete()
+                    if (path.endsWith(".kt")) {
+                        fileType = PushFileManager.TYPE_DEX
+                    }
                 } else if (path.endsWith(".xml") && fileType == PushFileManager.TYPE_LAYOUT) {
                     XmlRulesSend().send(project)
                 }
@@ -70,7 +73,7 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                     } else {
                         val destFolder = Config.getTargetFileDestPath()
                         PushFileManager.checkRemoteFolder(device, destFolder)
-                        val result = PushFileManager.pushFile("\"$path\"", destFolder + target.name, fileType)
+                        PushFileManager.pushFile(path, destFolder + target.name, fileType)
                         Messages.showDialog(e.project, "推送成功", "提示", arrayOf("确定"), 0, null)
                     }
                     PushFileManager.pushApply()
