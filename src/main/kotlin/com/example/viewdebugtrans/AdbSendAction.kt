@@ -58,7 +58,7 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                     // 经过编译的产物路径
                     path = CompileFileAndSend(project).compile(path, e)
                     makeRClass.delete()
-                    if (path.endsWith(".kt")) {
+                    if (path.endsWith(".dex")) {
                         fileType = PushFileManager.TYPE_DEX
                     }
                 } else if (path.endsWith(".xml") && fileType == PushFileManager.TYPE_LAYOUT) {
@@ -77,6 +77,10 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                         Messages.showDialog(e.project, "推送成功", "提示", arrayOf("确定"), 0, null)
                     }
                     PushFileManager.pushApply()
+                    if (fileType == PushFileManager.TYPE_DEX) {
+                        // 重命名产物文件
+                        target.renameTo(File(target.parent, "view-debug-delete.dex"))
+                    }
 
                     //showDialog(editor.component)
                 } else {

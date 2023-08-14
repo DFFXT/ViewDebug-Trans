@@ -61,11 +61,6 @@ object PushFileManager {
                 Config.getConfigRemotePath()
             )
             execute(cmd)
-            sendAction.forEach {
-                if (it.type == TYPE_DEX) {
-                    File(it.target).delete()
-                }
-            }
         }
     }
 

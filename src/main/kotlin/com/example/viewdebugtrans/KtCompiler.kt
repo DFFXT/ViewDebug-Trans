@@ -99,6 +99,10 @@ class KtCompiler(project: Project) : DxCompiler(project) {
         output(result, jarPath)
         // 将jar转换为dex文件
         dxCompileJar(jarPath, Config.getIdeaFolder() + File.separator + "view-debug.dex")
+        File(jarPath).let {
+            // 重命名产物文件
+            it.renameTo(File(it.parent, "view-debug-delete.jar"))
+        }
         show(e.project!!, Config.getIdeaFolder() + File.separator + "view-debug.dex")
         return Config.getIdeaFolder() + File.separator + "view-debug.dex"
     }
