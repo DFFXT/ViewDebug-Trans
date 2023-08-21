@@ -3,6 +3,7 @@ package com.example.viewdebugtrans
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.InputValidator
 import com.intellij.openapi.ui.Messages
 import java.io.File
 
@@ -28,7 +29,7 @@ class DestInputAction : AnAction("设置输出路径") {
     }
 }
 
-class DestADBAction : AnAction("设置adb路径") {
+class DestADBAction : AnAction("设置adb文件路径") {
     override fun actionPerformed(e: AnActionEvent) {
         val result = Messages.showInputDialog(e.project, null, "请输入adb路径", null, Config.adbPath, null)
         if (result != null) {
@@ -37,9 +38,9 @@ class DestADBAction : AnAction("设置adb路径") {
     }
 }
 
-class DestDxAction : AnAction("设置dx路径") {
+class DestDxAction : AnAction("设置dx或者d8路径") {
     override fun actionPerformed(e: AnActionEvent) {
-        val result = Messages.showInputDialog(e.project, null, "请输入dx路径", null, Config.dxPath, null)
+        val result = Messages.showInputDialog(e.project, null, "请输入dx或者d8路径", null, Config.dxPath, null)
         if (result != null) {
             Config.dxPath = result
         }
@@ -57,7 +58,17 @@ class DestJavaAction : AnAction("设置java1.8路径") {
 
 class DestRAction : AnAction("设置R文件相对路径") {
     override fun actionPerformed(e: AnActionEvent) {
-        val result = Messages.showInputDialog(e.project, null, "请输入R文件路径", null, Config.RFilePath, null)
+        val result = Messages.showInputDialog(e.project, null, "请输入R文件路径", null, Config.RFilePath ?: "例如：HMI\\AppShell\\build\\intermediates\\runtime_symbol_list\\debug\\R.txt", object : InputValidator {
+            override fun checkInput(inputString: String?): Boolean {
+                val project = e.project ?: return false
+                val rPath = File("${project.basePath}/$inputString")
+                return rPath.exists() && rPath.isFile
+            }
+
+            override fun canClose(inputString: String?): Boolean {
+                return true
+            }
+        })
         if (result != null) {
             Config.RFilePath = result
         }

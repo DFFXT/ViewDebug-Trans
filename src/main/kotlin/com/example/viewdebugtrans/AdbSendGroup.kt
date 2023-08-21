@@ -21,7 +21,7 @@ class AdbSendGroup : ActionGroup() {
             actions.add(AdbSendAction(d))
         }
         actions.add(0, DestRAction())
-        actions.add(0, DestJavaAction())
+        // actions.add(0, DestJavaAction())
         actions.add(0, DestDxAction())
         actions.add(0, DestADBAction())
         actions.add(0, DestInputAction())

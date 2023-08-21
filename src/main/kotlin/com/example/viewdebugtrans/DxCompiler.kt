@@ -4,8 +4,9 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import java.io.File
+import kotlin.concurrent.thread
 
-open abstract class DxCompiler(val project: Project) {
+abstract class DxCompiler(val project: Project) {
 
 
     fun dxCompileJar(jarPath: String, output: String) {
@@ -15,30 +16,44 @@ open abstract class DxCompiler(val project: Project) {
         }
         dxPath = Config.dxPath
         if (dxPath != null) {
-            //val relativeClassPath = relativeJavaPath.replace(".$suffix", ".$toSuffix")
-            //val outputDexPath = "${Config.getIdeaFolder()}/view-debug.dex"
             /**
              * 这里需要注意，dx工具默认是api 13，但是interface default 方法和static方法需要api>=24
              * 如果不设置版本号则编译失败
              * 这里设置版本号为26
              */
-            execute(arrayOf(
-                dxPath,
-                "--dex",
-                "--min-sdk-version=25",
-                "--output=$output",
-                jarPath
-            ))
-            /*show(null,execute(
-                "$dxPath --dex --min-sdk-version=25 --output=\"$output\" \"$jarPath\"",
-                *//*File(dir)*//*
-            ))*/
+            if (dxPath.endsWith("dx.bat") || dxPath.endsWith("dx")) {
+                execute(arrayOf(
+                    dxPath,
+                    "--dex",
+                    "--min-sdk-version=25",
+                    "--output=$output",
+                    jarPath
+                ))
+            } else if (dxPath.endsWith("d8.bat") || dxPath.endsWith("d8")) {
+                val outputDir = File(output).parentFile.absolutePath
+                execute(arrayOf(
+                    dxPath,
+                    "--output",
+                    outputDir,
+                    jarPath
+                ))
+                val dexFile = File(outputDir, "classes.dex")
+                if (dexFile.exists()) {
+                    show(null, "R8生成")
+                    dexFile.renameTo(File(output))
+                } else {
+                    show(null, "R8没有生成文件")
+                }
+            } else {
+                show(null, "未知路径：$dxPath")
+            }
+
             // 生成了dex文件
             if (!File(output).exists()) {
                 show(null, "未生成dex")
             }
         } else {
-            show(null, "没有找到dx路径")
+            show(null, "没有找到dx、d8路径")
         }
     }
 
@@ -55,20 +70,28 @@ open abstract class DxCompiler(val project: Project) {
             val adbFile = File(recommendPath)
             val buildTools = File(adbFile.parentFile.parentFile, "build-tools")
             if (buildTools.exists()) {
-                val dxPath = buildTools.listFiles().getOrNull(0)?.absolutePath + File.separator + "dx.bat"
-                if (File(dxPath).exists()) {
-                    Config.dxPath = dxPath
-                }
+                // 找d8
+                val d8Path = buildTools.listFiles()?.firstOrNull()?.absolutePath + File.separator + "d8.bat"
+                val result = trySetPath(d8Path)
+                if (result) return
+                // 找dx
+                val dxPath = buildTools.listFiles()?.firstOrNull()?.absolutePath + File.separator + "dx.bat"
+                trySetPath(dxPath)
             }
         } else {
             Messages.showDialog(project, "没有找到dx路径", "-", arrayOf("确定"), 0, null)
         }
     }
 
-    /*protected fun execute(cmd: String, dir: File? = null): String {
-        println("执行：$cmd  on $dir")
-        return String(Runtime.getRuntime().exec(cmd, null, dir).inputStream.readBytes())
-    }*/
+    private fun trySetPath(path: String?): Boolean {
+        path?:return false
+        val file = File(path)
+        if (file.exists() && file.isFile) {
+            Config.dxPath = path
+            return true
+        }
+        return false
+    }
 
     protected fun getJavacPath(): String {
         return execute("where javac").split("\n").map { it.trim() }.getOrNull(0) ?: "javac"

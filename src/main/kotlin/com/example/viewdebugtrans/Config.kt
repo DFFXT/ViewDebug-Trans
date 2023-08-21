@@ -116,4 +116,13 @@ object Config {
             properties.store(it, null)
         }
     }
+
+    /**
+     * 复制脚本到外部
+     */
+    fun copyCmdIfNotExists(cmd: String, fileName: String) {
+        val file = File(getIdeaFolder(), fileName)
+        file.createNewFile()
+        file.writeText(cmd)
+    }
 }
