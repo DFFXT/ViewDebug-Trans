@@ -18,7 +18,7 @@ class KtCompiler(project: Project) : DxCompiler(project) {
     /**
      * @return 编译后的dex路径
      */
-    fun compile(e: AnActionEvent): String {
+    fun compile(ktPath: String, e: AnActionEvent): String {
         // 得到KtFile对象，这个对象是kotlin插件中声明的，其类加载器能够加载kotlin插件中的其它类
         val KtFile = e.getData(CommonDataKeys.PSI_FILE)
         if (KtFile is PsiFile) {
@@ -98,13 +98,13 @@ class KtCompiler(project: Project) : DxCompiler(project) {
         // 输出jar文件
         output(result, jarPath)
         // 将jar转换为dex文件
-        dxCompileJar(jarPath, Config.getIdeaFolder() + File.separator + "view-debug.dex")
+        val generatedDex = Config.getIdeaFolder() + File.separator + Config.md5(ktPath)+".dex"
+        dxCompileJar(jarPath, generatedDex)
         File(jarPath).let {
-            // 重命名产物文件
+            // 重命名jar产物文件
             it.renameTo(File(it.parent, "view-debug-delete.jar"))
         }
-        show(e.project!!, Config.getIdeaFolder() + File.separator + "view-debug.dex")
-        return Config.getIdeaFolder() + File.separator + "view-debug.dex"
+        return generatedDex
     }
 
     private fun output(compiledResult: List<Pair<String, ByteArray>>, jarPath: String) {

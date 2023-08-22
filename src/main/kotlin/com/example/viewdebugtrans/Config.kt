@@ -3,11 +3,10 @@ package com.example.viewdebugtrans
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
-import com.intellij.openapi.util.PropertiesUtil
 import java.io.File
 import java.io.FileOutputStream
-import java.util.Properties
+import java.security.MessageDigest
+import java.util.*
 
 object Config {
     var projectPath: String = ""
@@ -68,6 +67,7 @@ object Config {
             val item = JsonObject()
             item.addProperty("file", it.path)
             item.addProperty("type", it.type)
+            item.addProperty("id", it.target)
             arr.add(item)
         }
         json.add("config", arr)
@@ -124,5 +124,20 @@ object Config {
         val file = File(getIdeaFolder(), fileName)
         file.createNewFile()
         file.writeText(cmd)
+    }
+
+    private val md5 by lazy {
+        MessageDigest.getInstance("MD5")
+    }
+    fun md5(string: String): String {
+        md5.reset()
+        val md5Byte = md5.digest(string.toByteArray())
+        val builder = StringBuilder()
+
+        for (aByte in md5Byte) {
+            builder.append(Integer.toHexString(0x000000FF and aByte.toInt() or -0x100).substring(6))
+        }
+
+        return builder.toString()
     }
 }

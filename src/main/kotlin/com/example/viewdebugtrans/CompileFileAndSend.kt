@@ -57,7 +57,7 @@ class CompileFileAndSend(project: Project): DxCompiler(project) {
             return path
                 //return compileJava(path, "java", "class", getJavacPath())
         } else if (path.endsWith(".kt")) {
-            return KtCompiler(project).compile(e)
+            return KtCompiler(project).compile(path, e)
         }
         return path
     }
