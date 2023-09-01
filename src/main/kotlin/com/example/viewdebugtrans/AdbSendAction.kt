@@ -73,7 +73,7 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                     } else {
                         val destFolder = Config.getTargetFileDestPath()
                         PushFileManager.checkRemoteFolder(device, destFolder)
-                        PushFileManager.pushFile(path, destFolder + target.name, fileType)
+                        PushFileManager.pushFile(path, destFolder + target.name, fileType, originPath)
                         Messages.showDialog(e.project, "推送成功", "提示", arrayOf("确定"), 0, null)
                     }
                     PushFileManager.pushApply()

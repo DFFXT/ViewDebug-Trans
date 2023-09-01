@@ -67,7 +67,8 @@ object Config {
             val item = JsonObject()
             item.addProperty("file", it.path)
             item.addProperty("type", it.type)
-            item.addProperty("id", it.target)
+            // 原始文件路径，具有唯一性
+            item.addProperty("originPath", it.originPath)
             arr.add(item)
         }
         json.add("config", arr)

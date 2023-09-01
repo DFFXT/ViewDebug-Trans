@@ -31,9 +31,9 @@ object PushFileManager {
         return String(Runtime.getRuntime().exec(cmd).inputStream.readBytes())
     }*/
 
-    fun pushFile(target: String, dest: String, type: String = TYPE_FILE): String {
+    fun pushFile(target: String, dest: String, type: String = TYPE_FILE, originPath: String = target): String {
         // Config.saveConfig(dest, type)
-        addFileItem(target, dest, type)
+        addFileItem(originPath, target, dest, type)
         // 先推送文件
         return execute(arrayOf(
             "adb", "-s", device!!, "push" , target, dest
@@ -68,8 +68,8 @@ object PushFileManager {
     /**
      * 添加要推送的文件
      */
-    private fun addFileItem(target: String, path: String, type: String) {
-        sendAction.add(FileItem(target, path, type))
+    private fun addFileItem(originPath: String, target: String, path: String, type: String) {
+        sendAction.add(FileItem(originPath, target, path, type))
     }
 
     fun reset() {
@@ -82,5 +82,5 @@ object PushFileManager {
      * @param path 要推送到的远程地址
      * @param type 文件类型
      */
-    class FileItem(val target: String, val path: String, val type: String)
+    class FileItem(val originPath: String, val target: String, val path: String, val type: String)
 }
