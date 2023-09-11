@@ -78,8 +78,14 @@ class AdbSendAction(private val device: String) : AnAction(device) {
                     }
                     PushFileManager.pushApply()
                     if (fileType == PushFileManager.TYPE_DEX) {
+                        val dest = File(target.parent, "view-debug-delete.dex")
+                        if (dest.exists()) {
+                            // 删除原产物
+                            dest.delete()
+                        }
                         // 重命名产物文件
-                        target.renameTo(File(target.parent, "view-debug-delete.dex"))
+                        val renameResult = target.renameTo(dest)
+                        show(null, "last rename $renameResult")
                     }
 
                     //showDialog(editor.component)

@@ -97,8 +97,8 @@ class KtCompiler(project: Project) : DxCompiler(project) {
         val jarPath = Config.getIdeaFolder() + File.separator + "view-debug.jar"
         // 输出jar文件
         output(result, jarPath)
-        // 将jar转换为dex文件
-        val generatedDex = Config.getIdeaFolder() + File.separator + Config.md5(ktPath)+".dex"
+        // 输出文本
+        val generatedDex = getOutputFileName(File(ktPath))
         dxCompileJar(jarPath, generatedDex)
         File(jarPath).let {
             // 重命名jar产物文件
@@ -107,6 +107,17 @@ class KtCompiler(project: Project) : DxCompiler(project) {
         return generatedDex
     }
 
+
+    /**
+     * 获取转换后的文件名称，具有唯一性
+     * 格式：md5_原始名称_kt.dex
+     */
+    private fun getOutputFileName(ktPath: File): String {
+        // 原始文件名称
+        val originKtFileName = ktPath.nameWithoutExtension + "_kt"
+        // 将jar转换为dex文件
+        return Config.getIdeaFolder() + File.separator + Config.md5(ktPath.absolutePath) + "_"+originKtFileName+".dex"
+    }
     private fun output(compiledResult: List<Pair<String, ByteArray>>, jarPath: String) {
         ZipOutputStream(FileOutputStream(jarPath)).use { os ->
             compiledResult.forEach { item ->
