@@ -23,16 +23,22 @@
 
     <actions>
 
-        <group id="ss" text="Push To Device" popup="true" class="com.example.viewdebugtrans.AdbSendGroup">
+        <group id="ss" text="Push To Device" popup="true" class="com.example.viewdebugtrans.action.AdbSendGroup">
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
         </group>
 
     </actions>
     <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.kotlin</depends>
+    <depends>com.intellij.gradle</depends>
+    <depends>org.jetbrains.android</depends>
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
 
     </extensions>
+    <projectListeners>
+        <listener class="com.example.viewdebugtrans.ProjectListener" topic="com.intellij.openapi.project.ProjectManagerListener"/>
+    </projectListeners>
 </idea-plugin>

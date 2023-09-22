@@ -1,0 +1,39 @@
+监听项目开启关闭
+ProjectManagerListener，需要在plugin.xml中注册
+项目Module相关
+ModuleRootManager：获取模块的一些root信息
+ModuleManager：获取模块的一些依赖信息
+    Module更改相关
+    ModuleRootManager.getInstance(module).modifiableModel，对模块的更改
+    Library.modifiableModel，对依赖做出更改
+    OrderEntry，依赖实体包装
+
+线程相关：
+写线程
+ApplicationManager.getApplication().runWriteAction
+读线程
+ApplicationManager.getApplication().runReadAction
+子线程切换导读写线程
+DumbService.getInstance(module.project).runReadActionInSmartMode
+
+///----Android更多的是分析安卓插件【org.jetbrains.android】的源码
+Android
+AndroidFacet
+当前运行配置：
+RunManagerEx.getInstanceEx(project).selectedConfiguration?.configuration
+android包名：project.getProjectSystem().getApplicationIdProvider(configuration)?.packageName
+
+Kotlin字节码生成：
+KotlinCompilerIde
+
+
+dex生成相关
+D8、D8Command
+
+adb相关：
+AndroidDebugBridge
+AndroidSdkUtils.findAdb
+
+Android SDK相关
+AndroidSdkData.getSdkData(IdeSdks.getInstance().getAndroidSdkPath()!!)
+AndroidSdkUtils

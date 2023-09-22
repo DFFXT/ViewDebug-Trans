@@ -1,0 +1,122 @@
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+XHCNU18929101877	device
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+XHCNU18929101877	device
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+XHCNU18929101877	device
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+XHCNU18929101877	device
+emulator-5560	device
+
+
+
+执行：adb devices
+
+执行错误信息：
+
+执行结果：List of devices attached
+XHCNU18929101877	device
+emulator-5560	device
+
+
+

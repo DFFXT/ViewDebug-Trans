@@ -1,5 +1,6 @@
 package com.example.viewdebugtrans
 
+import com.example.viewdebugtrans.util.Utils
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.intellij.openapi.project.Project
@@ -38,11 +39,6 @@ object Config {
             return getProperties("java")?.replace('\\', '/')
         }
 
-    var RFilePath: String?
-        set(value) {
-            setProperties("RPath", value?.replace('\\', '/'))
-        }
-        get() = getProperties("RPath")?.replace('\\', '/')
 
     fun updateProject(project: Project) {
         projectPath = project.basePath!!
@@ -52,9 +48,9 @@ object Config {
         setProperties("packagePath", pkgName)
     }
 
-    fun getPackageName(): String? {
+    /*fun getPackageName(): String? {
         return getProperties("packagePath")
-    }
+    }*/
 
     /**
      * 输出配置文件，用于文件推送
@@ -79,16 +75,20 @@ object Config {
         return File(getIdeaFolder(), "view-debug-config.json")
     }
 
-    fun getConfigRemotePath(): String {
+  /*  fun getConfigRemotePath(): String {
         return "${getPackageName()}/cache/view-debug/view-debug-config.json"
     }
 
     fun getTargetFileDestPath(): String {
         return "${getPackageName()}/cache/view-debug/receive/"
-    }
+    }*/
 
     fun getIdeaFolder(): String {
-        return projectPath + File.separator + Project.DIRECTORY_STORE_FOLDER
+        val file = File(projectPath + File.separator + Project.DIRECTORY_STORE_FOLDER + File.separator + "viewDebug")
+        if (!file.exists()) {
+            file.mkdirs()
+        }
+        return file.absolutePath
     }
 
     private fun getProperties(key: String): String? {
@@ -141,4 +141,6 @@ object Config {
 
         return builder.toString()
     }
+
+
 }

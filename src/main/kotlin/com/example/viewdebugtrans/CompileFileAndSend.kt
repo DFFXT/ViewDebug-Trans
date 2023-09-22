@@ -45,7 +45,7 @@ c
 
 
  */
-class CompileFileAndSend(project: Project): DxCompiler(project) {
+class CompileFileAndSend(module: com.intellij.openapi.module.Module): DxCompiler(module) {
 
     companion object {
         private var dxPath: String? = null
@@ -57,7 +57,7 @@ class CompileFileAndSend(project: Project): DxCompiler(project) {
             return path
                 //return compileJava(path, "java", "class", getJavacPath())
         } else if (path.endsWith(".kt")) {
-            return KtCompiler(project).compile(path, e)
+            return KtCompiler(module).compile(path, e)
         }
         return path
     }

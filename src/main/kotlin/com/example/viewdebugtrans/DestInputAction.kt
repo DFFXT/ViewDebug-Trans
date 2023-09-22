@@ -1,9 +1,11 @@
 package com.example.viewdebugtrans
 
+import com.example.viewdebugtrans.action.AdbSendGroup
+import com.example.viewdebugtrans.agreement.AdbDevicesManager
+import com.example.viewdebugtrans.socket.AdbServerRequest
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.InputValidator
 import com.intellij.openapi.ui.Messages
 import java.io.File
 
@@ -20,14 +22,14 @@ class ShowLogAction: AnAction("显示日志") {
         File(Config.getIdeaFolder(), "view-debug-log.txt").writeText(msg)
     }
 }
-class DestInputAction : AnAction("设置输出路径") {
+/*class DestInputAction : AnAction("设置输出路径") {
     override fun actionPerformed(e: AnActionEvent) {
         val result = Messages.showInputDialog(e.project, null, "请输入externalCache包名路径", null, Config.getPackageName(), null)
         if (result != null) {
             Config.savePackage(result)
         }
     }
-}
+}*/
 
 class DestADBAction : AnAction("设置adb文件路径") {
     override fun actionPerformed(e: AnActionEvent) {
@@ -38,27 +40,41 @@ class DestADBAction : AnAction("设置adb文件路径") {
     }
 }
 
-class DestDxAction : AnAction("设置dx或者d8路径") {
+/*class DestDxAction : AnAction("设置dx或者d8路径") {
     override fun actionPerformed(e: AnActionEvent) {
         val result = Messages.showInputDialog(e.project, null, "请输入dx或者d8路径", null, Config.dxPath, null)
         if (result != null) {
             Config.dxPath = result
         }
     }
-}
+}*/
 
-class DestJavaAction : AnAction("设置java1.8路径") {
+/*class DestJavaAction : AnAction("设置java1.8路径") {
     override fun actionPerformed(e: AnActionEvent) {
         val result = Messages.showInputDialog(e.project, null, "请输入java路径", null, Config.javaPath, null)
         if (result != null) {
             Config.javaPath = result
         }
     }
-}
+}*/
 
-class DestRAction : AnAction("设置R文件相对路径") {
+/*class DeviceConnect : AnAction("设备对接") {
     override fun actionPerformed(e: AnActionEvent) {
-        val result = Messages.showInputDialog(e.project, null, "请输入R文件路径", null, Config.RFilePath ?: "例如：HMI\\AppShell\\build\\intermediates\\runtime_symbol_list\\debug\\R.txt", object : InputValidator {
+        AdbSendGroup.currentDevices?.forEach {
+            try {
+                // 删除连接
+                execute(arrayOf("adb", "-s", it, "forward", "--remove", "tcp:${AdbServerRequest.remotePort}"))
+                // 建立连接
+                execute(arrayOf("adb", "-s", it, "forward", "tcp:${AdbServerRequest.remotePort}", "tcp:12349"))
+                val result = AdbServerRequest.requestRemotePushAgreement()
+                AdbDevicesManager.saveDeviceAgreement(it, result)
+                System.out.println("连接结果：$result")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+        }
+        *//*val result = Messages.showInputDialog(e.project, null, "请输入R文件路径", null, Config.RFilePath ?: "例如：HMI\\AppShell\\build\\intermediates\\runtime_symbol_list\\debug\\R.txt", object : InputValidator {
             override fun checkInput(inputString: String?): Boolean {
                 val project = e.project ?: return false
                 val rPath = File("${project.basePath}/$inputString")
@@ -71,12 +87,17 @@ class DestRAction : AnAction("设置R文件相对路径") {
         })
         if (result != null) {
             Config.RFilePath = result
-        }
+        }*//*
     }
-}
-fun show(project: Project?, text: String) {
+}*/
+fun show(project: Project? = null, text: String) {
     ShowLogAction.builder.append(text)
     ShowLogAction.builder.append("\n")
     ShowLogAction.builder.append("\n")
    //Messages.showInputDialog(project, null, "提示", null, text, null)
+}
+
+fun show(t: Throwable) {
+    show(null, t.message + "\n" +
+            t.stackTraceToString())
 }

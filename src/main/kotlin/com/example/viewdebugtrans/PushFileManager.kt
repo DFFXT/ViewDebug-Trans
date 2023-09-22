@@ -1,5 +1,9 @@
 package com.example.viewdebugtrans
 
+import com.example.viewdebugtrans.agreement.AdbAgreement
+import com.example.viewdebugtrans.agreement.AdbDevicesManager
+import com.example.viewdebugtrans.agreement.Device
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import java.io.File
 import java.util.*
@@ -9,9 +13,12 @@ import java.util.*
  */
 object PushFileManager {
 
+    private lateinit var agreement: AdbAgreement
+
     private val sendAction = LinkedList<FileItem>()
 
-    private var device: String? = null
+    private var device: Device? = null
+    private lateinit var adbPath: String
 
     const val TYPE_LAYOUT = "layout"
     const val TYPE_DRAWABLE = "drawable"
@@ -23,7 +30,10 @@ object PushFileManager {
     /**
      * 初始化
      */
-    fun init(device: String) {
+    fun init(device: Device, agreement: AdbAgreement, adbPath: String) {
+        reset()
+        this.adbPath =adbPath
+        this.agreement = agreement
         this.device = device
     }
 
@@ -36,14 +46,8 @@ object PushFileManager {
         addFileItem(originPath, target, dest, type)
         // 先推送文件
         return execute(arrayOf(
-            "adb", "-s", device!!, "push" , target, dest
+            adbPath, "-s", device!!.serialNumber, "push" , target, dest
         ))
-    }
-
-
-    fun checkRemoteFolder(device: String, folder: String) {
-        execute(arrayOf("adb", "-s", device, "shell", "mkdir", folder))
-        //execute("adb -s $device shell mkdir \"$folder\"")
     }
 
     /**
@@ -53,12 +57,12 @@ object PushFileManager {
         if (sendAction.isNotEmpty()) {
             Config.saveConfig(sendAction)
             val cmd = arrayOf(
-                "adb",
+                adbPath,
                 "-s",
-                device!!,
+                device!!.serialNumber,
                 "push",
                 Config.getConfigFile().absolutePath,
-                Config.getConfigRemotePath()
+                agreement.listenFile
             )
             execute(cmd)
         }

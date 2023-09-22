@@ -1,8 +1,10 @@
 package com.example.viewdebugtrans
 
+import com.android.tools.r8.*
+import com.android.tools.r8.origin.Origin
+import com.example.viewdebugtrans.util.showTip
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import org.jetbrains.org.objectweb.asm.*
 import java.io.File
@@ -13,7 +15,7 @@ import java.util.zip.ZipOutputStream
 /**
  * 使用kotlin插件的【Show Kotlin Bytecode】功能编译代码
  */
-class KtCompiler(project: Project) : DxCompiler(project) {
+class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module) {
 
     /**
      * @return 编译后的dex路径
@@ -95,11 +97,14 @@ class KtCompiler(project: Project) : DxCompiler(project) {
         }
         show(e.project!!, result.size.toString())
         val jarPath = Config.getIdeaFolder() + File.separator + "view-debug.jar"
-        // 输出jar文件
-        output(result, jarPath)
+
         // 输出文本
         val generatedDex = getOutputFileName(File(ktPath))
-        dxCompileJar(jarPath, generatedDex)
+
+        // 输出jar文件
+        output(result, jarPath, generatedDex)
+
+        // dxCompileJar(jarPath, generatedDex)
         File(jarPath).let {
             // 重命名jar产物文件
             it.renameTo(File(it.parent, "view-debug-delete.jar"))
@@ -118,19 +123,71 @@ class KtCompiler(project: Project) : DxCompiler(project) {
         // 将jar转换为dex文件
         return Config.getIdeaFolder() + File.separator + Config.md5(ktPath.absolutePath) + "_"+originKtFileName+".dex"
     }
-    private fun output(compiledResult: List<Pair<String, ByteArray>>, jarPath: String) {
+
+    /**
+     * @param compiledResult 字节码数据，first，文件路径名称（jar中的路径）
+     * @param jarPath 生成jar路径
+     * @param dexPath 生成dex路径
+     */
+    private fun output(compiledResult: List<Pair<String, ByteArray>>, jarPath: String, dexPath: String) {
+        val bytes = ArrayList<ByteArray>()
         ZipOutputStream(FileOutputStream(jarPath)).use { os ->
             compiledResult.forEach { item ->
                 os.putNextEntry(ZipEntry(item.first))
                 if (item.first.endsWith(".class")) {
                     os.write(insertFunction(item.second))
+                    bytes.add(item.second)
                 } else {
                     os.write(item.second)
                 }
             }
         }
+        val file = File(dexPath)
+        val dexByteArray = dex(bytes)
+        if (dexByteArray != null) {
+            file.writeBytes(dexByteArray)
+        } else {
+            showTip(module.project, "生成dex文件失败")
+        }
+
     }
 
+    private fun dex(classes: List<ByteArray>): ByteArray? {
+        try {
+            val builder: D8Command.Builder = D8Command.builder()
+            val consumer = DexConsumer()
+            for (bytes in classes) {
+                builder.addClassProgramData(bytes, Origin.unknown())
+            }
+            builder.mode = CompilationMode.DEBUG
+            builder.programConsumer = consumer
+            builder.minApiLevel = 13
+            builder.disableDesugaring = true
+            D8.run(builder.build())
+            return consumer.bytes
+        } catch (e: Exception) {
+            show(e)
+            return null
+        }
+    }
+
+    /**
+     * 复制于[org.jetbrains.kotlin.android.debugger.AndroidDexerImpl]
+     */
+    private class DexConsumer : DexIndexedConsumer {
+        var bytes: ByteArray? = null
+
+        @Synchronized
+        override fun accept(
+            fileIndex: Int, data: ByteDataView, descriptors: Set<String>, handler: DiagnosticsHandler
+        ) {
+            if (bytes != null) throw IllegalStateException("Multidex not supported")
+            bytes = data.copyByteData()
+        }
+
+        override fun finished(handler: DiagnosticsHandler) {
+        }
+    }
     //  根据生成文件分析，通过这种方式生成的kotlin会在Fragment的onDestroyView方法末尾生成 _$_clearFindViewByIdCache方法的调用，但实际又没有生成这个方法
     //  所以需要删除这个调用或者生成一个空对应的空方法避免方法找不到的异常
     private fun insertFunction(byteArray: ByteArray): ByteArray {

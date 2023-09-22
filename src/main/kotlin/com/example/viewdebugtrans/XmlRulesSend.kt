@@ -1,5 +1,6 @@
 package com.example.viewdebugtrans
 
+import com.example.viewdebugtrans.agreement.AdbAgreement
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.CompilerModuleExtension
@@ -9,7 +10,7 @@ import java.io.File
  * xml 布局规则文件推送
  */
 class XmlRulesSend {
-    fun send(project: Project) {
+    fun send(project: Project, agreement: AdbAgreement) {
         val rulePathsSet = HashSet<String>()
         val logSet = LinkedHashSet<String>()
         ModuleManager.getInstance(project).modules.forEachIndexed { index, it ->
@@ -33,7 +34,7 @@ class XmlRulesSend {
                                     rulePathsSet.add(ruleFile.absolutePath)
                                     // 推送规则文件
                                     show(project, "找到规则文件-----：$ruleFile")
-                                    PushFileManager.pushFile(ruleFile.absolutePath, Config.getTargetFileDestPath() + "merger-${index}.xml", "rules")
+                                    PushFileManager.pushFile(ruleFile.absolutePath, agreement.destDir + "/" + "merger-${index}.xml", "rules")
                                 }
                             } else {
                                 logSet.add("没有规则文件：$ruleFile")

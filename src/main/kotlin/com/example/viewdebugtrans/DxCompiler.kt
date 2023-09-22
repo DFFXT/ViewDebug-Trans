@@ -1,15 +1,18 @@
 package com.example.viewdebugtrans
 
-import com.intellij.openapi.actionSystem.AnAction
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.Messages
+import com.android.sdklib.BuildToolInfo
+import com.android.tools.idea.sdk.IdeSdks
+import com.example.viewdebugtrans.util.showTip
+import org.jetbrains.android.facet.AndroidFacet
+import org.jetbrains.android.sdk.AndroidSdkData
 import java.io.File
-import kotlin.concurrent.thread
 
-abstract class DxCompiler(val project: Project) {
+abstract class DxCompiler(val module: com.intellij.openapi.module.Module) {
 
 
+    @Deprecated("不再使用了，使用android插件的D8工具转dex")
     fun dxCompileJar(jarPath: String, output: String) {
+
         var dxPath = Config.dxPath
         if (dxPath == null) {
             tryGetDxPath()
@@ -58,7 +61,26 @@ abstract class DxCompiler(val project: Project) {
     }
 
     private fun tryGetDxPath() {
-        val adbPath = Config.adbPath
+        if (File(Config.dxPath ?: "%~11://???").exists()) return
+        // 获取Android sdk数据，找到dx路径
+
+        val androidFacet = AndroidFacet.getInstance(module) ?: return showTip(module.project, "androidFacet null")
+        val dxPath = AndroidSdkData.getSdkData(IdeSdks.getInstance().getAndroidSdkPath()!!)?.targets?.lastOrNull()?.buildToolInfo?.getPath(BuildToolInfo.PathId.ANDROID_RS) ?: return showTip(module.project, "没有找到dx")
+        val dx = File(dxPath)
+        val dir = dx.parent
+        val d8 = File(dir, "SdkConstants.FN_DX.replace(,)")
+        // AndroidSdks.getInstance().tryToChooseSdkHandler().getLatestBuildTool(StudioLoggerProgressIndicator(javaClass), true)
+
+        if (d8.exists()) {
+            Config.dxPath = d8.absolutePath
+        } else {
+            if (dx.exists()) {
+                Config.dxPath = dxPath
+            } else {
+                showTip(module.project, "没有找到d8、dx位置")
+            }
+        }
+        /*val adbPath = Config.adbPath
         val recommendPath = if (!adbPath.isNullOrEmpty()) {
             "$adbPath/adb.exe"
         } else {
@@ -79,19 +101,10 @@ abstract class DxCompiler(val project: Project) {
                 trySetPath(dxPath)
             }
         } else {
-            Messages.showDialog(project, "没有找到dx路径", "-", arrayOf("确定"), 0, null)
-        }
+            Messages.showDialog(module.project, "没有找到dx路径", "-", arrayOf("确定"), 0, null)
+        }*/
     }
 
-    private fun trySetPath(path: String?): Boolean {
-        path?:return false
-        val file = File(path)
-        if (file.exists() && file.isFile) {
-            Config.dxPath = path
-            return true
-        }
-        return false
-    }
 
     protected fun getJavacPath(): String {
         return execute("where javac").split("\n").map { it.trim() }.getOrNull(0) ?: "javac"

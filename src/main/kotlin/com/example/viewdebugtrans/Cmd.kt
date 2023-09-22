@@ -1,5 +1,6 @@
 package com.example.viewdebugtrans
 
+import com.android.tools.idea.sdk.IdeSdks
 import java.io.ByteArrayOutputStream
 import java.io.File
 
@@ -25,6 +26,7 @@ fun execute(cmd: String, dir: File? = null): String {
 }
 
 fun execute(cmdArray: Array<String>, dir: File? = null): String {
+    IdeSdks.getInstance()
 
     val adbPath = Config.adbPath
     if (cmdArray[0] == "adb" && !adbPath.isNullOrEmpty()) {
@@ -43,5 +45,6 @@ fun execute(cmdArray: Array<String>, dir: File? = null): String {
     show(null, "执行错误信息:"+ String(errorStream))
     val result = String(p.inputStream.readBytes())
     show(null, "执行结果：$result")
+    show(null, "error:" + String(errorStream))
     return result
 }
