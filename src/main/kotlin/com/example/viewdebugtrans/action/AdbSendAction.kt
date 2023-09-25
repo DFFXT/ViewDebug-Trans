@@ -144,7 +144,7 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
                 fileInfo.path = CompileFileAndSend(module).compile(p, e)
 
                 makeRClass.delete()
-                if (originPath.endsWith(".dex")) {
+                if (fileInfo.path.endsWith(".dex")) {
                     fileInfo.type = PushFileManager.TYPE_DEX
                 }
                 // send(fileInfo, e)
