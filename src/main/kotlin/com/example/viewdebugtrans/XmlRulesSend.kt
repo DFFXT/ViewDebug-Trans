@@ -10,7 +10,7 @@ import java.io.File
  * xml 布局规则文件推送
  */
 class XmlRulesSend {
-    fun send(project: Project, agreement: AdbAgreement) {
+    fun getXmlRules(project: Project):HashSet<String> {
         val rulePathsSet = HashSet<String>()
         val logSet = LinkedHashSet<String>()
         ModuleManager.getInstance(project).modules.forEachIndexed { index, it ->
@@ -34,7 +34,7 @@ class XmlRulesSend {
                                     rulePathsSet.add(ruleFile.absolutePath)
                                     // 推送规则文件
                                     show(project, "找到规则文件-----：$ruleFile")
-                                    PushFileManager.pushFile(ruleFile.absolutePath, agreement.destDir + "/" + "merger-${index}.xml", "rules")
+                                    // PushFileManager.pushFile(ruleFile.absolutePath, agreement.destDir + "/" + "merger-${index}.xml", "rules")
                                 }
                             } else {
                                 logSet.add("没有规则文件：$ruleFile")
@@ -50,5 +50,6 @@ class XmlRulesSend {
         logSet.forEach {
             show(project, it)
         }
+        return logSet
     }
 }

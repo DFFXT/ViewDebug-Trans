@@ -3,6 +3,7 @@ package com.example.viewdebugtrans
 import com.example.viewdebugtrans.action.AdbSendGroup
 import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.socket.AdbServerRequest
+import com.example.viewdebugtrans.util.getViewDebugDir
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.Project
@@ -19,7 +20,7 @@ class ShowLogAction: AnAction("显示日志") {
             msg = "NULL"
         }
         Messages.showDialog(e.project, msg, "编译日志", arrayOf("确定"), 0, null)
-        File(Config.getIdeaFolder(), "view-debug-log.txt").writeText(msg)
+        File(e.project?.getViewDebugDir(), "view-debug-log.txt").writeText(msg)
     }
 }
 /*class DestInputAction : AnAction("设置输出路径") {

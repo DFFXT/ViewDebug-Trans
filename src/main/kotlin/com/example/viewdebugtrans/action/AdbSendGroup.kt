@@ -1,13 +1,13 @@
 package com.example.viewdebugtrans.action
 
-import com.example.viewdebugtrans.*
+import com.example.viewdebugtrans.Config
+import com.example.viewdebugtrans.ShowLogAction
 import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.agreement.Device
 import com.example.viewdebugtrans.util.getPackageName
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import java.util.*
 
 /**
  * action group
@@ -17,6 +17,7 @@ class AdbSendGroup : ActionGroup() {
     companion object {
         var currentDevices: List<Device>? = null
     }
+
     override fun getChildren(e: AnActionEvent?): Array<AnAction> {
         e?.project?.let {
             Config.updateProject(it)
@@ -26,12 +27,17 @@ class AdbSendGroup : ActionGroup() {
 
         val actions = ArrayList<AnAction>()
         for (d in devices) {
-            val agreement = d.getAgreement(e?.project?.getPackageName())
-            if (agreement != null) {
-                actions.add(AdbSendAction(d, agreement))
+            if (d.online) {
+                val agreement = d.getAgreement(e?.project?.getPackageName())
+                if (agreement != null) {
+                    actions.add(AdbSendAction(d, agreement))
+                } else {
+                    actions.add(AdbDeviceConnectAction(d))
+                }
             } else {
-                actions.add(AdbDeviceConnectAction(d))
+                actions.add(AdbDeviceOfflineAction(d))
             }
+
         }
         // actions.add(0, DeviceConnect())
         // actions.add(0, DestJavaAction())
@@ -48,13 +54,13 @@ class AdbSendGroup : ActionGroup() {
         e.presentation.isEnabled = project != null
     }
 
-/*    private fun execute(cmd: String): String {
-        var changedCmd = cmd
-        val adbPath = Config.adbPath
-        if (cmd.startsWith("adb") && !adbPath.isNullOrEmpty()) {
-            changedCmd = "$adbPath/adb.exe"
-        }
-        return String(Runtime.getRuntime().exec(changedCmd).inputStream.readBytes())
-    }*/
+    /*    private fun execute(cmd: String): String {
+            var changedCmd = cmd
+            val adbPath = Config.adbPath
+            if (cmd.startsWith("adb") && !adbPath.isNullOrEmpty()) {
+                changedCmd = "$adbPath/adb.exe"
+            }
+            return String(Runtime.getRuntime().exec(changedCmd).inputStream.readBytes())
+        }*/
 
 }

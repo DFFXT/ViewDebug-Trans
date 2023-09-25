@@ -12,8 +12,13 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.ModuleUtil
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import java.io.File
+import kotlin.concurrent.thread
 
 
 /**
@@ -46,28 +51,55 @@ processRequestF.invoke(tasktI, location)
 //getBytecodeForFile
  */
 
-class AdbSendAction(private val device: Device, private val agreement: AdbAgreement) : AnAction(device.serialNumber +" - "+ agreement.pkgName) {
+class AdbSendAction(private val device: Device, private val agreement: AdbAgreement) : AnAction(device.run {
+    if (this.online) {
+        this.serialNumber + " - " + agreement.pkgName
+    } else {
+        this.serialNumber + " - " + "offline"
+    }
+}) {
     override fun actionPerformed(e: AnActionEvent) {
         try {
             ShowLogAction.builder.clear()
             val editor = e.getData(PlatformDataKeys.EDITOR) ?: return
             val project = e.project ?: return
-            var path = FileDocumentManager.getInstance().getFile(editor.document)?.path ?: return
+            val path = FileDocumentManager.getInstance().getFile(editor.document)?.path ?: return
             val originPath = path
-            var fileType: String = getFileType(originPath)
+            val fileType: String = getFileType(originPath)
+            val fileInfo = FileInfo(path, path, fileType)
             val adbP = AdbDevicesManager.getAdbPath(project)
-            if ( adbP== null) {
+            if (adbP == null) {
                 showTip(project, "没有adb可用")
                 return
             }
             PushFileManager.init(device, agreement, adbP)
 
-            if (path.endsWith(".java") || path.endsWith(".kt")) {
+            thread {
+                ProgressManager.getInstance().run(object : Task.Backgroundable(project, "推送中") {
+                    override fun run(indicator: ProgressIndicator) {
+                        beforeSend(project, e, fileInfo)
+                        if (!indicator.isCanceled) {
+                            send(fileInfo)
+                            afterSend(fileInfo, e)
+                        }
+                    }
+
+                    override fun onCancel() {
+                        super.onCancel()
+                    }
+                })
+            }
+
+            /*if (path.endsWith(".java") || path.endsWith(".kt")) {
                 // 代码文件，需要编译和R文件
-                val vf = LocalFileSystem.getInstance().findFileByIoFile(File(path)) ?: return showTip(project, "文件不是真实文件")
+                val vf = LocalFileSystem.getInstance().findFileByIoFile(File(path)) ?: return showTip(
+                    project,
+                    "文件不是真实文件"
+                )
                 val module = ModuleUtil.findModuleForFile(vf, project) ?: return showTip(project, "文件不属于任何模块")
                 val makeRClass = MakeRClass()
                 val p = path
+
                 makeRClass.make(module, path) {
                     // 经过编译的产物路径
                     path = CompileFileAndSend(module).compile(p, e)
@@ -80,9 +112,9 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
                 }
 
             } else if (path.endsWith(".xml") && fileType == PushFileManager.TYPE_LAYOUT) {
-                XmlRulesSend().send(project,agreement)
+                XmlRulesSend().send(project, agreement)
                 send(path, fileType, originPath, e)
-            }
+            }*/
         } catch (exception: Exception) {
             show(
                 project = e.project!!, exception.message + "\n" +
@@ -91,16 +123,60 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
         }
 
     }
-    
-    private fun send(path: String, fileType: String, originPath: String, e: AnActionEvent) {
-        val target = File(path)
+
+    /**
+     * 推送之前，可以对文件进行加工和处理
+     */
+    private fun beforeSend(project: Project, e: AnActionEvent, fileInfo: FileInfo) {
+        val originPath = fileInfo.originPath
+        if (originPath.endsWith(".java") || originPath.endsWith(".kt")) {
+            // 代码文件，需要编译和R文件
+            val vf = LocalFileSystem.getInstance().findFileByIoFile(File(originPath)) ?: return showTip(
+                project,
+                "文件不是真实文件"
+            )
+            val module = ModuleUtil.findModuleForFile(vf, project) ?: return showTip(project, "文件不属于任何模块")
+            val makeRClass = MakeRClass()
+            val p = originPath
+
+            makeRClass.make(module, originPath) {
+                // 经过编译的产物路径
+                fileInfo.path = CompileFileAndSend(module).compile(p, e)
+
+                makeRClass.delete()
+                if (originPath.endsWith(".dex")) {
+                    fileInfo.type = PushFileManager.TYPE_DEX
+                }
+                // send(fileInfo, e)
+            }
+
+        } else if (originPath.endsWith(".xml") && fileInfo.type == PushFileManager.TYPE_LAYOUT) {
+            XmlRulesSend().getXmlRules(project).forEachIndexed { index, it ->
+                PushFileManager.pushFile(it, agreement.destDir + "/" + "merger-${index}.xml", PushFileManager.TYPE_XML_RULE)
+            }
+            // send(fileInfo, e)
+        }
+    }
+
+    /**
+     * 推送
+     */
+    private fun send(fileInfo: FileInfo) {
+        val target = File(fileInfo.path)
         if (target.exists()) {
             val destFolder = agreement.destDir
-            // PushFileManager.checkRemoteFolder(device, destFolder)
-            PushFileManager.pushFile(path, destFolder + "/" + target.name, fileType, originPath)
+            PushFileManager.pushFile(fileInfo.path, destFolder + "/" + target.name, fileInfo.type, fileInfo.originPath)
             PushFileManager.pushApply()
-            showDialog(e.project!!, "推送成功", "提示", arrayOf("确定"), 0)
-            if (fileType == PushFileManager.TYPE_DEX) {
+        }
+    }
+
+    /**
+     * 推送结束
+     */
+    private fun afterSend(fileInfo: FileInfo, e: AnActionEvent) {
+        val target = File(fileInfo.path)
+        if (target.exists()) {
+            if (fileInfo.type == PushFileManager.TYPE_DEX) {
                 val dest = File(target.parent, "view-debug-delete.dex")
                 if (dest.exists()) {
                     // 删除原产物
@@ -110,15 +186,13 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
                 val renameResult = target.renameTo(dest)
                 show(null, "last rename $renameResult")
             }
-            PushFileManager.reset()
-            //showDialog(editor.component)
+            showDialog(e.project!!, "推送成功", "提示", arrayOf("确定"), 0)
         } else {
-            showDialog(e.project!!, "推送失败，产物文件不存在: $path", "提示", arrayOf("确定"), 0)
-            show(e.project!!, "不存在$path")
+            showDialog(e.project!!, "推送失败，产物文件不存在: ${fileInfo.path}", "提示", arrayOf("确定"), 0)
+            show(e.project!!, "不存在${fileInfo.path}")
         }
+        PushFileManager.reset()
     }
-
-
 
 
     private fun getFileType(path: String): String {
@@ -138,5 +212,12 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
         }
         return PushFileManager.TYPE_FILE
     }
+
+    /**
+     * @param originPath 原始文件路径
+     * @param path 要处理或者推送的路径
+     * @param type 文件类型
+     */
+    private class FileInfo(val originPath: String, var path: String, var type: String)
 
 }

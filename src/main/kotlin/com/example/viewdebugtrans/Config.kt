@@ -83,6 +83,7 @@ object Config {
         return "${getPackageName()}/cache/view-debug/receive/"
     }*/
 
+    @Deprecated("project.getViewDebugDir()")
     fun getIdeaFolder(): String {
         val file = File(projectPath + File.separator + Project.DIRECTORY_STORE_FOLDER + File.separator + "viewDebug")
         if (!file.exists()) {

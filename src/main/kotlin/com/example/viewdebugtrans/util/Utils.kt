@@ -1,6 +1,7 @@
 package com.example.viewdebugtrans.util
 
 import com.android.tools.idea.projectsystem.getProjectSystem
+import com.example.viewdebugtrans.Config
 import com.intellij.execution.RunManagerEx
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
@@ -57,6 +58,14 @@ fun Project.getPackageName(): String? {
     //return null
 }
 
+fun Project.getViewDebugDir(): File {
+    val file = File(this.basePath!! + File.separator + Project.DIRECTORY_STORE_FOLDER + File.separator + "viewDebug")
+    if (!file.exists()) {
+        file.mkdirs()
+    }
+    return file
+}
+
 fun AnActionEvent.getModule(): com.intellij.openapi.module.Module? {
     val project = this.project ?: return null
     val editor = this.getData(PlatformDataKeys.EDITOR) ?: return null
@@ -65,7 +74,7 @@ fun AnActionEvent.getModule(): com.intellij.openapi.module.Module? {
     return ModuleUtil.findModuleForFile(vf, project)
 }
 
-fun showDialog(project: Project, msg: String, title: String, options: Array<String>, defaultOption: Int) {
+fun showDialog(project: Project?, msg: String, title: String, options: Array<String>, defaultOption: Int) {
 
     ApplicationManager.getApplication().invokeLater {
         Messages.showDialog(project, msg, title, options, defaultOption, null)

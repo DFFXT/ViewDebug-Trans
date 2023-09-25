@@ -2,7 +2,8 @@ package com.example.viewdebugtrans.agreement
 
 data class Device(
     val id: String,
-    val serialNumber: String
+    val serialNumber: String,
+    var online: Boolean
 ) {
     var agreement: ArrayList<AdbAgreement> = ArrayList()
 
@@ -14,5 +15,4 @@ data class Device(
     }
 
     fun getAgreement(pkgName: String?): AdbAgreement? = this.agreement.find { it.pkgName == pkgName }
-
 }

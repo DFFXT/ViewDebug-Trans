@@ -102,11 +102,25 @@ object MyProjectManager {
             // 重新对orderEntry进行排序
             it.rearrangeOrderEntries(allOrderEntry.toTypedArray())
             // 使用runWriteAction方法执行commit，对修改进行应用
-            ApplicationManager.getApplication().runWriteAction {
-                libModifiableModel.commit()
-                it.commit()
+
+            DumbService.getInstance(module.project).runWhenSmart {
+                ApplicationManager.getApplication().runWriteAction {
+                    libModifiableModel.commit()
+                    it.commit()
+                }
             }
-            thread {
+
+            // 新开线程，确保不阻塞原线程（runReadActionInSmartMode会阻塞当前线程）
+            DumbService.getInstance(module.project).runReadActionInSmartMode {
+                try {
+                    runnable.run()
+                } catch (e: Exception) {
+                    show(e)
+                } finally {
+                    removeRDependency(module)
+                }
+            }
+            /*thread {
                 // 新开线程，确保不阻塞原线程（runReadActionInSmartMode会阻塞当前线程）
                 DumbService.getInstance(module.project).runReadActionInSmartMode {
                     try {
@@ -117,7 +131,7 @@ object MyProjectManager {
                         removeRDependency(module)
                     }
                 }
-            }
+            }*/
         }
     }
 

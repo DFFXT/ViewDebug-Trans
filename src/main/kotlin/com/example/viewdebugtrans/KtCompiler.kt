@@ -2,6 +2,7 @@ package com.example.viewdebugtrans
 
 import com.android.tools.r8.*
 import com.android.tools.r8.origin.Origin
+import com.example.viewdebugtrans.util.getViewDebugDir
 import com.example.viewdebugtrans.util.showTip
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -96,7 +97,7 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
             Pair(path, byteCode)
         }
         show(e.project!!, result.size.toString())
-        val jarPath = Config.getIdeaFolder() + File.separator + "view-debug.jar"
+        val jarPath = module.project.getViewDebugDir().absolutePath + File.separator + "view-debug.jar"
 
         // 输出文本
         val generatedDex = getOutputFileName(File(ktPath))
@@ -107,7 +108,9 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
         // dxCompileJar(jarPath, generatedDex)
         File(jarPath).let {
             // 重命名jar产物文件
-            it.renameTo(File(it.parent, "view-debug-delete.jar"))
+            val renameToFile = File(it.parent, "view-debug-delete.jar")
+            renameToFile.delete()
+            it.renameTo(renameToFile)
         }
         return generatedDex
     }
@@ -121,7 +124,7 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
         // 原始文件名称
         val originKtFileName = ktPath.nameWithoutExtension + "_kt"
         // 将jar转换为dex文件
-        return Config.getIdeaFolder() + File.separator + Config.md5(ktPath.absolutePath) + "_"+originKtFileName+".dex"
+        return module.project.getViewDebugDir().absolutePath + File.separator + Config.md5(ktPath.absolutePath) + "_"+originKtFileName+".dex"
     }
 
     /**

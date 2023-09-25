@@ -1,5 +1,6 @@
 package com.example.viewdebugtrans
 
+import com.example.viewdebugtrans.util.getViewDebugDir
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.project.Project
@@ -98,7 +99,7 @@ class CompileFileAndSend(module: com.intellij.openapi.module.Module): DxCompiler
                     val adbFile = File(recommendPath)
                     val buildTools = File(adbFile.parentFile.parentFile, "build-tools")
                     if (buildTools.exists()) {
-                        val dxPath = buildTools.listFiles().getOrNull(0)?.absolutePath + File.separator + "dx.bat"
+                        val dxPath = buildTools.listFiles()?.getOrNull(0)?.absolutePath + File.separator + "dx.bat"
                         if (File(dxPath).exists()) {
                             CompileFileAndSend.dxPath = dxPath
                         }
@@ -107,7 +108,7 @@ class CompileFileAndSend(module: com.intellij.openapi.module.Module): DxCompiler
             }
             if (dxPath != null) {
                 val relativeClassPath = relativeJavaPath.replace(".$suffix", ".$toSuffix")
-                val outputDexPath = "${Config.getIdeaFolder()}/view-debug.dex"
+                val outputDexPath = "${module.project.getViewDebugDir().absolutePath}/view-debug.dex"
                 execute(arrayOf(dxPath!!, "--dex", "--output=$outputDexPath", relativeClassPath), File(dir))
                 /*execute(
                     "$dxPath --dex --output=\"$outputDexPath\" \"$relativeClassPath\"",
