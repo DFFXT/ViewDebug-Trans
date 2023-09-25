@@ -8,6 +8,8 @@ ModuleManager：获取模块的一些依赖信息
     Library.modifiableModel，对依赖做出更改
     OrderEntry，依赖实体包装
 
+module.guessModuleDir，module没有basePath这个概念，只能猜测，因为module有可能有多个dir
+
 线程相关：
 写线程
 ApplicationManager.getApplication().runWriteAction

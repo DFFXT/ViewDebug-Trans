@@ -12,7 +12,13 @@ import java.io.File
 
 class ShowLogAction: AnAction("显示日志") {
     companion object {
-        val builder = StringBuilder()
+        private val builder = StringBuffer()
+        fun clear() {
+            builder.delete(0, builder.length)
+        }
+        fun append(text: String) {
+            builder.append(text)
+        }
     }
     override fun actionPerformed(e: AnActionEvent) {
         var msg = builder.toString()
@@ -92,9 +98,9 @@ class DestADBAction : AnAction("设置adb文件路径") {
     }
 }*/
 fun show(project: Project? = null, text: String) {
-    ShowLogAction.builder.append(text)
-    ShowLogAction.builder.append("\n")
-    ShowLogAction.builder.append("\n")
+    ShowLogAction.append(text)
+    ShowLogAction.append("\n")
+    ShowLogAction.append("\n")
    //Messages.showInputDialog(project, null, "提示", null, text, null)
 }
 
