@@ -7,6 +7,7 @@ import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.agreement.Device
 import com.example.viewdebugtrans.util.showDialog
 import com.example.viewdebugtrans.util.showTip
+import com.google.gson.JsonElement
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
@@ -72,7 +73,7 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
                 showTip(project, "没有adb可用")
                 return
             }
-            PushFileManager.init(device, agreement, adbP)
+            PushFileManager.init(project, device, agreement, adbP)
 
             thread {
                 ProgressManager.getInstance().run(object : Task.Backgroundable(project, "推送中") {
@@ -137,11 +138,10 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
             )
             val module = ModuleUtil.findModuleForFile(vf, project) ?: return showTip(project, "文件不属于任何模块")
             val makeRClass = MakeRClass()
-            val p = originPath
 
             makeRClass.make(module, originPath) {
                 // 经过编译的产物路径
-                fileInfo.path = CompileFileAndSend(module).compile(p, e)
+                fileInfo.path = CompileFileAndSend(module).compile(fileInfo, e)
 
                 makeRClass.delete()
                 if (fileInfo.path.endsWith(".dex")) {
@@ -152,7 +152,7 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
 
         } else if (originPath.endsWith(".xml") && fileInfo.type == PushFileManager.TYPE_LAYOUT) {
             XmlRulesSend().getXmlRules(project).forEachIndexed { index, it ->
-                PushFileManager.pushFile(it, agreement.destDir + "/" + "merger-${index}.xml", PushFileManager.TYPE_XML_RULE)
+                PushFileManager.pushFile(it, agreement.destDir + "/" + "merger-${index}.xml", PushFileManager.TYPE_XML_RULE, extra = null)
             }
             // send(fileInfo, e)
         }
@@ -165,7 +165,7 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
         val target = File(fileInfo.path)
         if (target.exists()) {
             val destFolder = agreement.destDir
-            PushFileManager.pushFile(fileInfo.path, destFolder + "/" + target.name, fileInfo.type, fileInfo.originPath)
+            PushFileManager.pushFile(fileInfo.path, destFolder + "/" + target.name, fileInfo.type, fileInfo.originPath, fileInfo.extra)
             PushFileManager.pushApply()
         }
     }
@@ -218,6 +218,6 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
      * @param path 要处理或者推送的路径
      * @param type 文件类型
      */
-    private class FileInfo(val originPath: String, var path: String, var type: String)
+    class FileInfo(val originPath: String, var path: String, var type: String, var extra: JsonElement? = null)
 
 }

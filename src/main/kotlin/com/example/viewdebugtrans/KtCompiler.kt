@@ -2,8 +2,11 @@ package com.example.viewdebugtrans
 
 import com.android.tools.r8.*
 import com.android.tools.r8.origin.Origin
+import com.example.viewdebugtrans.action.AdbSendAction
 import com.example.viewdebugtrans.util.getViewDebugDir
 import com.example.viewdebugtrans.util.showTip
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.psi.PsiFile
@@ -17,12 +20,14 @@ import java.util.zip.ZipOutputStream
  * 使用kotlin插件的【Show Kotlin Bytecode】功能编译代码
  */
 class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module) {
+    private lateinit var fileInfo: AdbSendAction.FileInfo
 
     /**
      * @return 编译后的dex路径
      */
-    fun compile(ktPath: String, e: AnActionEvent): String {
+    fun compile(fileInfo: AdbSendAction.FileInfo, e: AnActionEvent): String {
         // 得到KtFile对象，这个对象是kotlin插件中声明的，其类加载器能够加载kotlin插件中的其它类
+        this.fileInfo = fileInfo
         val KtFile = e.getData(CommonDataKeys.PSI_FILE)
         if (KtFile is PsiFile) {
             show(null, "编译文件："+KtFile.toString())
@@ -100,7 +105,7 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
         val jarPath = module.project.getViewDebugDir().absolutePath + File.separator + "view-debug.jar"
 
         // 输出文本
-        val generatedDex = getOutputFileName(File(ktPath))
+        val generatedDex = getOutputFileName(File(fileInfo.path))
 
         // 输出jar文件
         output(result, jarPath, generatedDex)
@@ -134,12 +139,24 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
      */
     private fun output(compiledResult: List<Pair<String, ByteArray>>, jarPath: String, dexPath: String) {
         val bytes = ArrayList<ByteArray>()
+        val extra = JsonObject()
+        val classArr = JsonArray()
+        extra.add("class", classArr)
+        // 记录额外信息
+        /**
+         * {
+         * class:[]
+         * }
+         */
+        fileInfo.extra = extra
         ZipOutputStream(FileOutputStream(jarPath)).use { os ->
             compiledResult.forEach { item ->
                 os.putNextEntry(ZipEntry(item.first))
                 if (item.first.endsWith(".class")) {
                     os.write(insertFunction(item.second))
                     bytes.add(item.second)
+                    var name = item.first.replace('/', '.')
+                    classArr.add(name.substring(0, name.length-6))
                 } else {
                     os.write(item.second)
                 }

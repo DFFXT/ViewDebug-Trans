@@ -2,14 +2,10 @@ package com.example.viewdebugtrans.agreement
 
 import com.android.ddmlib.AndroidDebugBridge
 import com.android.ddmlib.IDevice
-import com.android.tools.idea.adb.wireless.AdbDevice
-import com.example.viewdebugtrans.Config
 import com.example.viewdebugtrans.execute
 import com.example.viewdebugtrans.util.Utils
 import com.example.viewdebugtrans.util.getViewDebugDir
 import com.intellij.openapi.module.ModuleManager
-import com.intellij.openapi.progress.ProgressIndicatorProvider
-import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManagerListener
 import org.jetbrains.android.facet.AndroidFacet
@@ -17,7 +13,12 @@ import org.jetbrains.android.sdk.AndroidSdkUtils
 import org.jetbrains.android.sdk.AndroidSdkUtils.AdbSearchResult
 import org.jetbrains.kotlin.android.model.AndroidModuleInfoProvider
 import java.io.File
+import kotlin.collections.set
 import kotlin.concurrent.thread
+
+/**
+ * 设备管理
+ */
 object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectManagerListener {
 
     private val projects = HashMap<Project, AdbSearchResult>()
@@ -85,6 +86,16 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
      * data/data/pkgName/cache/viewDebug/agreement
      * 更新到：
      * .idea/viewDebug/agreement/deviceId
+     * 注意：如果设备没有root权限，则无法直接使用adb pull命令来复制data/data/pkg下的文件
+     * 替代方案：通过adb run-as pkg 的方式来操作对应目录下的文件
+     *  1. 先将文件复制到data/local/tmp目录下
+     *  2. 再通过adb pull拉取文件
+     *  3. 删除临时文件
+     *  data/local/tmp 文件夹的特殊性
+     *  1. 专门供adb使用的目录，adb可以直接读写
+     *  2. 应用无法在该目录写入
+     *
+     *  为啥这么复杂，不在可读写的目录写入协议，因为不想依赖要外部存储权限，而且这个数据如果储存到外部，卸载后有残留
      */
     fun fetchRemoteAgreement(project: Project, device: Device, pkgName: String) {
         val adbP = getAnyAdbPath() ?: return
@@ -92,16 +103,47 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
         if (agreementFile.exists()) {
             agreementFile.delete()
         }
+        // 创建临时文件（不能run-as，run-as没权限）
+        execute(
+            arrayOf(
+                adbP,
+                "-s",
+                device.serialNumber,
+                "shell",
+                "touch",
+                "/data/local/tmp/$pkgName-agreement"
+            )
+        )
+        // 复制文件到data/local/tmp，需要run-as，不然没权限
+        execute(
+            arrayOf(
+                adbP,
+                "-s",
+                device.serialNumber,
+                "shell",
+                "run-as",
+                pkgName,
+                "cp",
+                "/data/data/$pkgName/cache/viewDebug/agreement",
+                "/data/local/tmp/$pkgName-agreement"
+            )
+        )
+
+        // pull文件到电脑
         execute(
             arrayOf(
                 adbP,
                 "-s",
                 device.serialNumber,
                 "pull",
-                "/data/data/$pkgName/cache/viewDebug/agreement",
+                "/data/local/tmp/$pkgName-agreement",
                 getAgreementFolder(project).absolutePath + File.separator + device.id
             )
         )
+        execute(arrayOf(
+            adbP,
+            "-s", device.serialNumber,"shell", "rm", "/data/local/tmp/$pkgName-agreement"
+        ))
         val id = device.id
         val agreement =  getAgreementFolder(project).listFiles()?.find { it.isFile && it.name == id }?.let {
             AdbAgreement.parse(Utils.stringToMap(it.readText()))
@@ -155,8 +197,6 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
                 requestAgreement(project, it)
             }
         }
-
-
     }
 
     override fun projectClosed(project: Project) {

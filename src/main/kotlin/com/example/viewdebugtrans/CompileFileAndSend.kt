@@ -1,5 +1,6 @@
 package com.example.viewdebugtrans
 
+import com.example.viewdebugtrans.action.AdbSendAction
 import com.example.viewdebugtrans.util.getViewDebugDir
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -52,13 +53,14 @@ class CompileFileAndSend(module: com.intellij.openapi.module.Module): DxCompiler
         private var dxPath: String? = null
     }
 
-    fun compile(path: String, e: AnActionEvent): String {
+    fun compile(fileInfo: AdbSendAction.FileInfo, e: AnActionEvent): String {
+        val path = fileInfo.path
         if (path.endsWith(".java")) {
             //JavaByteCode().getByteCode(e)
             return path
                 //return compileJava(path, "java", "class", getJavacPath())
         } else if (path.endsWith(".kt")) {
-            return KtCompiler(module).compile(path, e)
+            return KtCompiler(module).compile(fileInfo, e)
         }
         return path
     }

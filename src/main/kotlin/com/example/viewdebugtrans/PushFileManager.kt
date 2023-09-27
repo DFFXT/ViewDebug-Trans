@@ -1,10 +1,10 @@
 package com.example.viewdebugtrans
 
 import com.example.viewdebugtrans.agreement.AdbAgreement
-import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.agreement.Device
+import com.example.viewdebugtrans.util.getViewDebugDir
+import com.google.gson.JsonElement
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
 import java.io.File
 import java.util.*
 
@@ -19,6 +19,7 @@ object PushFileManager {
 
     private var device: Device? = null
     private lateinit var adbPath: String
+    private var project: Project? = null
 
     const val TYPE_LAYOUT = "layout"
     const val TYPE_DRAWABLE = "drawable"
@@ -31,8 +32,9 @@ object PushFileManager {
     /**
      * 初始化
      */
-    fun init(device: Device, agreement: AdbAgreement, adbPath: String) {
+    fun init(project: Project, device: Device, agreement: AdbAgreement, adbPath: String) {
         reset()
+        this.project = project
         this.adbPath =adbPath
         this.agreement = agreement
         this.device = device
@@ -42,9 +44,18 @@ object PushFileManager {
         return String(Runtime.getRuntime().exec(cmd).inputStream.readBytes())
     }*/
 
-    fun pushFile(target: String, dest: String, type: String = TYPE_FILE, originPath: String = target): String {
+    fun pushFile(target: String, dest: String, type: String = TYPE_FILE, originPath: String = target, extra: JsonElement? = null): String {
         // Config.saveConfig(dest, type)
-        addFileItem(originPath, target, dest, type)
+        addFileItem(originPath, target, dest, type, extra)
+        if (extra != null) {
+            // 推送extra文件
+            val extraFile = File(project!!.getViewDebugDir(), "extra")
+            extraFile.writeText(extra.toString())
+            execute(arrayOf(
+                adbPath, "-s", device!!.serialNumber, "push" , extraFile.absolutePath, "$dest.extra"
+            ))
+        }
+
         // 先推送文件
         return execute(arrayOf(
             adbPath, "-s", device!!.serialNumber, "push" , target, dest
@@ -73,13 +84,14 @@ object PushFileManager {
     /**
      * 添加要推送的文件
      */
-    private fun addFileItem(originPath: String, target: String, path: String, type: String) {
-        sendAction.add(FileItem(originPath, target, path, type))
+    private fun addFileItem(originPath: String, target: String, path: String, type: String, extra: JsonElement?) {
+        sendAction.add(FileItem(originPath, target, path, type, extra))
     }
 
     fun reset() {
         device = null
         sendAction.clear()
+        project = null
     }
 
     /**
@@ -87,5 +99,5 @@ object PushFileManager {
      * @param path 要推送到的远程地址
      * @param type 文件类型
      */
-    class FileItem(val originPath: String, val target: String, val path: String, val type: String)
+    class FileItem(val originPath: String, val target: String, val path: String, val type: String, val extra: JsonElement?)
 }
