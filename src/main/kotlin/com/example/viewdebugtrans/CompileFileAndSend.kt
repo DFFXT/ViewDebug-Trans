@@ -3,10 +3,7 @@ package com.example.viewdebugtrans
 import com.example.viewdebugtrans.action.AdbSendAction
 import com.example.viewdebugtrans.util.getViewDebugDir
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.CommonDataKeys
-import com.intellij.openapi.project.Project
 import java.io.File
-import java.util.regex.Pattern
 
 
 /**

@@ -74,7 +74,8 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
                 return
             }
             PushFileManager.init(project, device, agreement, adbP)
-
+            // 保存当前内容到磁盘，否则有可能推送的不是最新内容，文件内容变更后会不定时的刷新到磁盘，刷新前推送就会导致内容不是最新
+            FileDocumentManager.getInstance().saveDocument(editor.document)
             thread {
                 ProgressManager.getInstance().run(object : Task.Backgroundable(project, "推送中") {
                     override fun run(indicator: ProgressIndicator) {
