@@ -1,7 +1,6 @@
 package com.example.viewdebugtrans
 
 import com.android.tools.idea.sdk.IdeSdks
-import java.io.ByteArrayOutputStream
 import java.io.File
 
 @Deprecated("")

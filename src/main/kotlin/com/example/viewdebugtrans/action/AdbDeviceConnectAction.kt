@@ -25,7 +25,7 @@ class AdbDeviceConnectAction(private val device: Device): AnAction("${device.ser
             System.out.println("连接结果：$result")*/
             val pkgName = e.project?.getPackageName()
             if (pkgName != null) {
-                AdbDevicesManager.fetchRemoteAgreement(e.project!!, device, pkgName)
+                AdbDevicesManager.fetchRemoteAgreement(e.project!!, device)
                 if (device.getAgreement(pkgName) == null) {
                     showDialog(e.project, "当前设备不支持，请确保${pkgName}集成了调试插件0.20+", "失败", arrayOf("确定"), 0)
                 } else {

@@ -2,8 +2,12 @@ package com.example.viewdebugtrans.agreement
 
 import com.android.ddmlib.AndroidDebugBridge
 import com.android.ddmlib.IDevice
+import com.android.tools.idea.explorer.fs.FileTransferProgress
+import com.android.tools.idea.layoutinspector.pipeline.adb.AdbUtils
 import com.example.viewdebugtrans.execute
+import com.example.viewdebugtrans.show
 import com.example.viewdebugtrans.util.Utils
+import com.example.viewdebugtrans.util.getPackageName
 import com.example.viewdebugtrans.util.getViewDebugDir
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
@@ -11,8 +15,8 @@ import com.intellij.openapi.project.ProjectManagerListener
 import org.jetbrains.android.facet.AndroidFacet
 import org.jetbrains.android.sdk.AndroidSdkUtils
 import org.jetbrains.android.sdk.AndroidSdkUtils.AdbSearchResult
-import org.jetbrains.kotlin.android.model.AndroidModuleInfoProvider
 import java.io.File
+import java.util.*
 import kotlin.collections.set
 import kotlin.concurrent.thread
 
@@ -22,11 +26,14 @@ import kotlin.concurrent.thread
 object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectManagerListener {
 
     private val projects = HashMap<Project, AdbSearchResult>()
+
+    // AdbUtils.getAdbFuture(project).get()?.devices
     private val devices = ArrayList<Device>()
 
     init {
         AndroidDebugBridge.addDeviceChangeListener(this)
     }
+
     /**
      * 获取设备列表
      */
@@ -44,28 +51,6 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
         }
         return file
     }
-
-    /**
-     * 保存设备的推送协议
-     */
-   /* fun saveDeviceAgreement(device: String, agreement: Map<String, String>) {
-        //adb -s 127.0.0.1:5561 shell settings get secure android_id
-        val id = AndroidDebugBridge.getBridge().devices.find { it.serialNumber == device }?.getProperty("net.hostname")
-        val pkgName = agreement["pkgName"]?.replace('.', '_')
-        val file = File(getAgreementFolder(), id + "_" + pkgName)
-        file.writeText(Utils.mapToString(agreement))
-    }*/
-
-    /**
-     * 获取设备对应的协议
-     */
-    /*fun getDeviceAgreement(device: Device) {
-        val id = device.id
-        val agreement =  getAgreementFolder().listFiles()?.find { it.isFile && it.name == id }?.let {
-            AdbAgreement.parse(Utils.stringToMap(it.readText()))
-        }
-        device.addAgreement(agreement)
-    }*/
 
     /**
      * 获取adb路径
@@ -96,59 +81,67 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
      *  2. 应用无法在该目录写入
      *
      *  为啥这么复杂，不在可读写的目录写入协议，因为不想依赖要外部存储权限，而且这个数据如果储存到外部，卸载后有残留
+     *
+     *
+     *  借鉴了android插件内设备文件管理器的思路（直接用adbFileTransfer封装的逻辑将文件拷贝到电脑）
      */
-    fun fetchRemoteAgreement(project: Project, device: Device, pkgName: String) {
-        val adbP = getAnyAdbPath() ?: return
+    fun fetchRemoteAgreement(project: Project, device: Device) {
         val agreementFile = File(getAgreementFolder(project).absolutePath + "/" + device.id)
         if (agreementFile.exists()) {
             agreementFile.delete()
         }
-        // 创建临时文件（不能run-as，run-as没权限）
-        execute(
-            arrayOf(
-                adbP,
-                "-s",
-                device.serialNumber,
-                "shell",
-                "touch",
-                "/data/local/tmp/$pkgName-agreement"
-            )
-        )
-        // 复制文件到data/local/tmp，需要run-as，不然没权限
-        execute(
-            arrayOf(
-                adbP,
-                "-s",
-                device.serialNumber,
-                "shell",
-                "run-as",
-                pkgName,
-                "cp",
-                "/data/data/$pkgName/cache/viewDebug/agreement",
-                "/data/local/tmp/$pkgName-agreement"
-            )
-        )
 
-        // pull文件到电脑
-        execute(
-            arrayOf(
-                adbP,
-                "-s",
-                device.serialNumber,
-                "pull",
-                "/data/local/tmp/$pkgName-agreement",
-                getAgreementFolder(project).absolutePath + File.separator + device.id
-            )
-        )
-        execute(arrayOf(
-            adbP,
-            "-s", device.serialNumber,"shell", "rm", "/data/local/tmp/$pkgName-agreement"
-        ))
-        val id = device.id
-        val agreement =  getAgreementFolder(project).listFiles()?.find { it.isFile && it.name == id }?.let {
-            AdbAgreement.parse(Utils.stringToMap(it.readText()))
+        device.fileSystem.taskExecutor.executeAndAwait {
+            getRemoteAgreement(project, device, getAgreementFolder(project).absolutePath + File.separator + device.id)
+            val id = device.id
+            val agreement = getAgreementFolder(project).listFiles()?.find { it.isFile && it.name == id }?.let {
+                AdbAgreement.parse(Utils.stringToMap(it.readText()))
+            }
+            device.addAgreement(agreement)
         }
-        device.addAgreement(agreement)
+    }
+
+    /**
+     * 获取远程协议路径
+     * 由于系统的多样性，大多数情况下，内部存储在data/data/pkg下，
+     * 但是仍然有些系统用户数据不在这个目录下：
+     * 比如data/user_de/uid/pkg
+     */
+    private fun getRemoteAgreement(project: Project, device: Device, dest: String) {
+        val adb = getAdbPath(project) ?: getAnyAdbPath() ?: return show(null, "没有adb环境")
+        AdbUtils.getAdbFuture(project).get()?.devices
+        val userId = execute(arrayOf(adb, "-s", device.device.serialNumber, "shell", "am", " get-current-user")).trim()
+        show(null, "userId = $userId")
+        val result = LinkedList<String>()
+        val pkgName = project.getPackageName() ?: return show(null, "包名null")
+        if (userId == "0") {
+            result.add("/data/data/${pkgName}/cache/viewDebug/agreement")
+        }
+        result.add("/data/user_de/$userId/${pkgName}/cache/viewDebug/agreement")
+        // 目录都读取一遍
+        for (p in result) {
+            try {
+                device.fileSystem.adbFileTransfer.downloadFileViaTempLocation(
+                    p,
+                    0L,
+                    File(dest).toPath(),
+                    object : FileTransferProgress {
+                        override fun progress(currentBytes: Long, totalBytes: Long) {
+
+                        }
+
+                        override fun isCancelled(): Boolean {
+                            return false
+                        }
+                    },
+                    pkgName
+                ).get()
+
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     /**
@@ -156,7 +149,7 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
      * 这个方法必须在运行的线程中执行
      */
     fun getDevice(device: IDevice): Device {
-        return Device(getDeviceId(device.serialNumber), device.serialNumber, device.isOnline)
+        return Device(getDeviceId(device.serialNumber), device.serialNumber, device.isOnline, device)
     }
 
 
@@ -167,19 +160,30 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
 
 
     override fun deviceConnected(device: IDevice) {
+        getDevice(device)
         thread {
+            show(null, device.serialNumber +"-remove")
             devices.removeIf { it.serialNumber == device.serialNumber }
-            val d = getDevice(device)
-            devices.add(d)
-            projects.forEach { project ->
-                requestAgreement(project.key, d)
+            try {
+                val d = getDevice(device)
+                show(null, d.serialNumber)
+                devices.add(d)
+                show(null, d.serialNumber +"-add")
+                projects.forEach { project ->
+                    requestAgreement(project.key, d)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                show(e)
             }
+
 
         }
     }
 
     override fun deviceDisconnected(device: IDevice) {
         devices.removeIf { it.serialNumber == device.serialNumber }
+        show(null, device.serialNumber +"-remove")
     }
 
     override fun deviceChanged(device: IDevice, changeMask: Int) {
@@ -214,15 +218,11 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
             AndroidFacet.getInstance(it)?.configuration?.isAppProject == true
         }
         // 获取传输协议
-        appModules.forEach {
-            val pkgName = AndroidModuleInfoProvider.getInstance(it)?.getApplicationPackage()
-            if (pkgName != null) {
-                fetchRemoteAgreement(
-                    project,
-                    device = device,
-                    pkgName
-                )
-            }
+        appModules.forEach { _ ->
+            fetchRemoteAgreement(
+                project,
+                device = device
+            )
         }
     }
 }
