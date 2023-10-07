@@ -152,7 +152,7 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
             }
 
         } else if (originPath.endsWith(".xml") && fileInfo.type == PushFileManager.TYPE_LAYOUT) {
-            XmlRulesSend().getXmlRules(project).forEachIndexed { index, it ->
+            XmlRulesFetch().getXmlRules(project).forEachIndexed { index, it ->
                 PushFileManager.pushFile(it, agreement.destDir + "/" + "merger-${index}.xml", PushFileManager.TYPE_XML_RULE, extra = null)
             }
             // send(fileInfo, e)

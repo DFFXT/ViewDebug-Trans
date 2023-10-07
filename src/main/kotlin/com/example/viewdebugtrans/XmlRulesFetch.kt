@@ -1,37 +1,43 @@
 package com.example.viewdebugtrans
 
-import com.android.ide.common.resources.MergedResourceWriter
-import com.android.tools.idea.lint.common.getModuleDir
-import com.android.tools.idea.projectsystem.AndroidModuleSystem
-import com.android.tools.idea.projectsystem.getFlavorAndBuildTypeManifestsOfLibs
-import com.android.tools.idea.projectsystem.getProjectSystem
-import com.example.viewdebugtrans.agreement.AdbAgreement
 import com.example.viewdebugtrans.util.getPackageName
 import com.intellij.execution.RunManagerEx
-import com.intellij.openapi.module.ModuleManager
+import com.intellij.execution.configurations.ModuleBasedConfiguration
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessModuleDir
-import com.intellij.openapi.roots.CompilerModuleExtension
-import org.jetbrains.android.facet.AndroidFacet
-import org.jetbrains.kotlin.android.model.AndroidModuleInfoProvider
+import com.intellij.openapi.project.rootManager
+import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
 
 /**
  * xml 布局规则文件推送
  */
-class XmlRulesSend {
+class XmlRulesFetch {
     fun getXmlRules(project: Project):HashSet<String> {
         val rulePathsSet = HashSet<String>()
         val logSet = LinkedHashSet<String>()
         val applicationPkg = project.getPackageName()
+        val configuration = RunManagerEx.getInstanceEx(project).selectedConfiguration?.configuration
+        var appModule: Module? = null
+        if (configuration  is ModuleBasedConfiguration<*,*>) {
+            appModule = configuration.configurationModule.module
+        }
         // 找到Android项目的根模块
-        val appModule = project.getProjectSystem().submodules.find {
+        /*val appModule = project.getProjectSystem().submodules.find {
             val androidModule = AndroidModuleInfoProvider.getInstance(it) ?: return@find false
             return@find androidModule.isAndroidModule() && androidModule.getApplicationPackage() == applicationPkg
-        }
+        }*/
         if (appModule == null) {
-            show(null, "没有找到android主模块")
+            show(project, "没有找到android主模块")
             return rulePathsSet
+        }
+        /**
+         *  这里使用这个方法，ProjectUtil里面的[Module.guessModuleDir]方法由于版本问题，无法返回正确的目录
+         */
+        fun Module.guessModuleDir(): VirtualFile? {
+            val contentRoots = rootManager.contentRoots.filter { it.isDirectory }
+            return contentRoots.find { it.name == name } ?: contentRoots.firstOrNull() ?: moduleFile?.parent
         }
 
         // 猜测模块的base dir；
@@ -63,16 +69,16 @@ class XmlRulesSend {
                     logSet.add("没有规则文件：$rulesPath")
                 }
             } else {
-                show(null, "null ruleFileDir")
+                show(project, "null rulesPath（$basePath）不存在")
             }
 
         } else {
-            show(null, "${appModule.name}模块目录没找到")
+            show(project, "${appModule.name}模块目录没找到")
         }
         logSet.forEach {
             show(project, it)
         }
-        show(null, "size${rulePathsSet.size}")
+        show(project, "getXmlRules size:${rulePathsSet.size}")
         return rulePathsSet
     }
 }

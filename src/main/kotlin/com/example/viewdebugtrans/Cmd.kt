@@ -40,10 +40,11 @@ fun execute(cmdArray: Array<String>, dir: File? = null): CmdResult {
     val p = Runtime.getRuntime().exec(cmdArray, null, dir)
     // 需要读取errorStream，否则缓冲区堆积，导致死锁
     val errorStream = p.errorStream.readBytes()
-    show(null, "执行错误信息:"+ String(errorStream))
+    if (errorStream.isNotEmpty()) {
+        show(null, "执行错误信息:"+ String(errorStream))
+    }
     val result = String(p.inputStream.readBytes())
     show(null, "执行结果：$result")
-    show(null, "error:" + String(errorStream))
     if (errorStream.isNotEmpty()) {
         return CmdResult(true, String(errorStream))
     } else {
