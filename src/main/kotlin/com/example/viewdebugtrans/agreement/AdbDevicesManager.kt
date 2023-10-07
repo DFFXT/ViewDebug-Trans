@@ -2,8 +2,11 @@ package com.example.viewdebugtrans.agreement
 
 import com.android.ddmlib.AndroidDebugBridge
 import com.android.ddmlib.IDevice
+import com.android.tools.idea.layoutinspector.pipeline.adb.AdbUtils
 import com.example.viewdebugtrans.execute
+import com.example.viewdebugtrans.show
 import com.example.viewdebugtrans.util.Utils
+import com.example.viewdebugtrans.util.getPackageName
 import com.example.viewdebugtrans.util.getViewDebugDir
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
@@ -13,6 +16,7 @@ import org.jetbrains.android.sdk.AndroidSdkUtils
 import org.jetbrains.android.sdk.AndroidSdkUtils.AdbSearchResult
 import org.jetbrains.kotlin.android.model.AndroidModuleInfoProvider
 import java.io.File
+import java.util.*
 import kotlin.collections.set
 import kotlin.concurrent.thread
 
@@ -103,7 +107,9 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
         if (agreementFile.exists()) {
             agreementFile.delete()
         }
+
         // 创建临时文件（不能run-as，run-as没权限）
+        val tmp = "/data/local/tmp/$pkgName-agreement"
         execute(
             arrayOf(
                 adbP,
@@ -111,9 +117,12 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
                 device.serialNumber,
                 "shell",
                 "touch",
-                "/data/local/tmp/$pkgName-agreement"
+                tmp
             )
         )
+       /* if (device.isSuRoot()) {
+            execute(arrayOf(adbP, "-s", device.serialNumber, "shell", "su", "0", "sh", "-c", "cp /data/data/$pkgName/cache/viewDebug/agreement /data/local/tmp/$pkgName-agreement"))
+        }
         // 复制文件到data/local/tmp，需要run-as，不然没权限
         execute(
             arrayOf(
@@ -127,8 +136,9 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
                 "/data/data/$pkgName/cache/viewDebug/agreement",
                 "/data/local/tmp/$pkgName-agreement"
             )
-        )
+        )*/
 
+        copyRemoteAgreement(project, device, tmp)
         // pull文件到电脑
         execute(
             arrayOf(
@@ -137,7 +147,7 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
                 device.serialNumber,
                 "pull",
                 "/data/local/tmp/$pkgName-agreement",
-                getAgreementFolder(project).absolutePath + File.separator + device.id
+                (getAgreementFolder(project).absolutePath + File.separator + device.id).replace('\\','/')
             )
         )
         execute(arrayOf(
@@ -152,6 +162,49 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
     }
 
     /**
+     * 复制文件到dest
+     * 由于不同设备的cache目录不一致，所以需要猜测
+     * ？？是否可以在设备上安装一个临时apk来进行通信
+     * @param dest 设备上的临时文件地址
+     */
+    private fun copyRemoteAgreement(project: Project, device: Device, dest: String) {
+        val adb = getAdbPath(project) ?: getAnyAdbPath() ?: return show(null, "没有adb环境")
+        AdbUtils.getAdbFuture(project).get()?.devices
+        val cmdResult = execute(arrayOf(adb, "-s", device.serialNumber, "shell", "am", " get-current-user"))
+        val userId = cmdResult.msg.trim()
+        show(null, "userId = $userId")
+        val result = LinkedList<String>()
+        val pkgName = project.getPackageName() ?: return show(null, "包名null")
+        if (userId == "0") {
+            result.add("/data/data/${pkgName}/cache/viewDebug/agreement")
+        }
+        result.add("/data/user_de/$userId/${pkgName}/cache/viewDebug/agreement")
+        // 目录都读取一遍
+        if (device.isSuRoot()) {
+            for (p in result) {
+                execute(arrayOf(adb, "-s", device.serialNumber, "shell", "su", "0", "sh", "-c", "'cp $p $dest'"))
+            }
+        } else {
+            // 复制文件到data/local/tmp，需要run-as，不然没权限
+            for (p in result) {
+                execute(
+                    arrayOf(
+                        adb,
+                        "-s",
+                        device.serialNumber,
+                        "shell",
+                        "run-as",
+                        pkgName,
+                        "cp",
+                        p,
+                        dest
+                    )
+                )
+            }
+        }
+    }
+
+    /**
      * device转换
      * 这个方法必须在运行的线程中执行
      */
@@ -162,7 +215,12 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
 
     fun getDeviceId(device: String): String {
         val adbP = getAnyAdbPath() ?: return "--"
-        return execute(arrayOf(adbP, "-s", device, "shell", "settings", "get", "secure", "android_id")).trim()
+        val result = execute(arrayOf(adbP, "-s", device, "shell", "settings", "get", "secure", "android_id"))
+        return if (!result.error) {
+            result.msg
+        } else {
+            ""
+        }
     }
 
 

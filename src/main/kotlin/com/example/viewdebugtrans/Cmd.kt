@@ -25,9 +25,7 @@ fun execute(cmd: String, dir: File? = null): String {
     return result
 }
 
-fun execute(cmdArray: Array<String>, dir: File? = null): String {
-    IdeSdks.getInstance()
-
+fun execute(cmdArray: Array<String>, dir: File? = null): CmdResult {
     val adbPath = Config.adbPath
     if (cmdArray[0] == "adb" && !adbPath.isNullOrEmpty()) {
         // 如果有设置adb路径，则使用adb路径
@@ -46,5 +44,10 @@ fun execute(cmdArray: Array<String>, dir: File? = null): String {
     val result = String(p.inputStream.readBytes())
     show(null, "执行结果：$result")
     show(null, "error:" + String(errorStream))
-    return result
+    if (errorStream.isNotEmpty()) {
+        return CmdResult(true, String(errorStream))
+    } else {
+        return CmdResult(false, result.trim())
+    }
 }
+class CmdResult(val error: Boolean, val msg: String)

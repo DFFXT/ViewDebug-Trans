@@ -44,7 +44,7 @@ object PushFileManager {
         return String(Runtime.getRuntime().exec(cmd).inputStream.readBytes())
     }*/
 
-    fun pushFile(target: String, dest: String, type: String = TYPE_FILE, originPath: String = target, extra: JsonElement? = null): String {
+    fun pushFile(target: String, dest: String, type: String = TYPE_FILE, originPath: String = target, extra: JsonElement? = null) {
         // Config.saveConfig(dest, type)
         addFileItem(originPath, target, dest, type, extra)
         if (extra != null) {
@@ -57,7 +57,7 @@ object PushFileManager {
         }
 
         // 先推送文件
-        return execute(arrayOf(
+        execute(arrayOf(
             adbPath, "-s", device!!.serialNumber, "push" , target, dest
         ))
     }
