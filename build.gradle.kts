@@ -18,8 +18,9 @@ intellij {
     // 2021.2
     // 2021.2.1
     // 2022.2.5
+    // 2022.3.1
     // 2023.2.2
-    version.set("2022.2.5")
+    version.set("2022.3.1")
     type.set("IC") // Target IDE Platform
 
     // 依赖的插件，idea插件网站查看，对应plugin id

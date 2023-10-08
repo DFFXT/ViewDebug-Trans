@@ -1,11 +1,15 @@
 package com.example.viewdebugtrans
 
+import com.android.tools.idea.projectsystem.AndroidModuleSystem
+import com.android.tools.idea.projectsystem.androidProjectType
+import com.android.tools.idea.projectsystem.getHolderModule
 import com.example.viewdebugtrans.util.getPackageName
 import com.intellij.execution.RunManagerEx
 import com.intellij.execution.configurations.ModuleBasedConfiguration
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessModuleDir
+import com.intellij.openapi.project.modules
 import com.intellij.openapi.project.rootManager
 import com.intellij.openapi.vfs.VirtualFile
 import java.io.File
@@ -21,7 +25,7 @@ class XmlRulesFetch {
         val configuration = RunManagerEx.getInstanceEx(project).selectedConfiguration?.configuration
         var appModule: Module? = null
         if (configuration  is ModuleBasedConfiguration<*,*>) {
-            appModule = configuration.configurationModule.module
+            appModule = configuration.configurationModule.module?.getHolderModule()
         }
         // 找到Android项目的根模块
         /*val appModule = project.getProjectSystem().submodules.find {
@@ -31,20 +35,33 @@ class XmlRulesFetch {
         if (appModule == null) {
             show(project, "没有找到android主模块")
             return rulePathsSet
+        } else if (appModule.androidProjectType() != AndroidModuleSystem.Type.TYPE_APP) {
+            val autoSelect = project.modules.find { it.androidProjectType() == AndroidModuleSystem.Type.TYPE_APP }?.getHolderModule()
+            show(project, "当前选择的不是app模块，请选择正确的运行模块")
+            if (autoSelect != null) {
+                appModule = autoSelect
+                show(project, "当前选择的不是app模块，自动选择：${autoSelect.name}")
+            }
         }
         /**
          *  这里使用这个方法，ProjectUtil里面的[Module.guessModuleDir]方法由于版本问题，无法返回正确的目录
          */
         fun Module.guessModuleDir(): VirtualFile? {
             val contentRoots = rootManager.contentRoots.filter { it.isDirectory }
+            show(project, "select -> $name")
+            show(project, "contentRoots ${contentRoots.joinToString(";") { it.name }}")
+            show(project, "moduleFile?.parent ${moduleFile?.parent}")
             return contentRoots.find { it.name == name } ?: contentRoots.firstOrNull() ?: moduleFile?.parent
         }
 
         // 猜测模块的base dir；
-        val basePath = appModule.guessModuleDir()?.path
+        var basePath = appModule.guessModuleDir()?.path
 
 
         if (basePath != null) {
+            if (basePath.endsWith("/src/main")) {
+                basePath = basePath.substring(0, basePath.length - 9)
+            }
             // xml文件，需要xml规则文件
             val rulesPath = "$basePath/build/intermediates/incremental"
             val ruleFileDir = File(rulesPath)
