@@ -3,9 +3,10 @@ package com.example.viewdebugtrans.agreement
 import com.example.viewdebugtrans.execute
 
 data class Device(
+    // id == serialNumber
     val id: String,
     val serialNumber: String,
-    var online: Boolean
+    val online: Boolean
 ) {
     private var isSuRoot: Boolean? = null
     var agreement: ArrayList<AdbAgreement> = ArrayList()

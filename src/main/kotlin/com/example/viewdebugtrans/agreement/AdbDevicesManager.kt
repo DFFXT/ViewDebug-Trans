@@ -8,9 +8,11 @@ import com.example.viewdebugtrans.show
 import com.example.viewdebugtrans.util.Utils
 import com.example.viewdebugtrans.util.getPackageName
 import com.example.viewdebugtrans.util.getViewDebugDir
+import com.example.viewdebugtrans.util.launch
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManagerListener
+import kotlinx.coroutines.Dispatchers
 import org.jetbrains.android.facet.AndroidFacet
 import org.jetbrains.android.sdk.AndroidSdkUtils
 import org.jetbrains.android.sdk.AndroidSdkUtils.AdbSearchResult
@@ -27,9 +29,9 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
 
     private val projects = HashMap<Project, AdbSearchResult>()
     private val devices = ArrayList<Device>()
-
     init {
         AndroidDebugBridge.addDeviceChangeListener(this)
+
     }
     /**
      * 获取设备列表
@@ -41,35 +43,13 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
     /**
      * 协议目录
      */
-    fun getAgreementFolder(project: Project): File {
+    private fun getAgreementFolder(project: Project): File {
         val file = File(project.getViewDebugDir(), "agreement")
         if (!file.exists()) {
             file.mkdirs()
         }
         return file
     }
-
-    /**
-     * 保存设备的推送协议
-     */
-   /* fun saveDeviceAgreement(device: String, agreement: Map<String, String>) {
-        //adb -s 127.0.0.1:5561 shell settings get secure android_id
-        val id = AndroidDebugBridge.getBridge().devices.find { it.serialNumber == device }?.getProperty("net.hostname")
-        val pkgName = agreement["pkgName"]?.replace('.', '_')
-        val file = File(getAgreementFolder(), id + "_" + pkgName)
-        file.writeText(Utils.mapToString(agreement))
-    }*/
-
-    /**
-     * 获取设备对应的协议
-     */
-    /*fun getDeviceAgreement(device: Device) {
-        val id = device.id
-        val agreement =  getAgreementFolder().listFiles()?.find { it.isFile && it.name == id }?.let {
-            AdbAgreement.parse(Utils.stringToMap(it.readText()))
-        }
-        device.addAgreement(agreement)
-    }*/
 
     /**
      * 获取adb路径
@@ -208,8 +188,8 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
      * device转换
      * 这个方法必须在运行的线程中执行
      */
-    fun getDevice(device: IDevice): Device {
-        return Device(getDeviceId(device.serialNumber), device.serialNumber, device.isOnline)
+    fun getDevice(serialNumber: String, online: Boolean): Device {
+        return Device(serialNumber, serialNumber, online)
     }
 
 
@@ -225,45 +205,47 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
 
 
     override fun deviceConnected(device: IDevice) {
-        thread {
-            devices.removeIf { it.serialNumber == device.serialNumber }
-            val d = getDevice(device)
-            devices.add(d)
+        deviceConnected(device.serialNumber, device.isOnline)
+    }
+
+    private fun deviceConnected(serialNumber: String, online: Boolean) {
+        val d = getDevice(serialNumber, online)
+        devices.removeIf { it.serialNumber == serialNumber}
+        devices.add(d)
+        launch(Dispatchers.IO) {
             projects.forEach { project ->
                 requestAgreement(project.key, d)
             }
-
         }
+
     }
 
     override fun deviceDisconnected(device: IDevice) {
-        devices.removeIf { it.serialNumber == device.serialNumber }
+        synchronized(devices) {
+            devices.removeIf { it.serialNumber == device.serialNumber }
+        }
     }
 
     override fun deviceChanged(device: IDevice, changeMask: Int) {
         if (changeMask or IDevice.CHANGE_STATE == IDevice.CHANGE_STATE) {
-            thread {
-                updateDevice(device)
-            }
+            deviceConnected(device)
         }
     }
 
+
     override fun projectOpened(project: Project) {
         projects[project] = AndroidSdkUtils.findAdb(project)
-        thread {
-            getDevices().forEach {
-                requestAgreement(project, it)
+        launch(Dispatchers.IO) {
+            synchronized(devices) {
+                getDevices().forEach {
+                    requestAgreement(project, it)
+                }
             }
         }
     }
 
     override fun projectClosed(project: Project) {
         projects.remove(project)
-    }
-
-    private fun updateDevice(iDevice: IDevice) {
-        val id = getDeviceId(iDevice.serialNumber)
-        devices.find { it.id == id }?.online = iDevice.isOnline
     }
 
     private fun requestAgreement(project: Project, device: Device) {
