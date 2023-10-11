@@ -75,14 +75,14 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
      * 获取adb路径
      */
     fun getAdbPath(project: Project): String? {
-        return projects[project]?.adbPath?.absolutePath
+        return projects[project]?.adbPath?.absolutePath ?: AndroidSdkUtils.findAdb(project).adbPath?.absolutePath
     }
 
     /**
      * 返回一个可用adb路径
      */
     fun getAnyAdbPath(): String? {
-        return projects.asSequence().find { it.value.adbPath != null }?.value?.adbPath?.absolutePath
+        return projects.asSequence().find { (it.value.adbPath ?: AndroidSdkUtils.findAdb(it.key).adbPath) != null }?.value?.adbPath?.absolutePath
     }
 
     /**

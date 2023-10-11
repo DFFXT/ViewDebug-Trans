@@ -61,6 +61,7 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
 }) {
     override fun actionPerformed(e: AnActionEvent) {
         try {
+            // return
             ShowLogAction.clear()
             val editor = e.getData(PlatformDataKeys.EDITOR) ?: return
             val project = e.project ?: return

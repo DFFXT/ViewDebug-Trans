@@ -153,8 +153,9 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
             compiledResult.forEach { item ->
                 os.putNextEntry(ZipEntry(item.first))
                 if (item.first.endsWith(".class")) {
-                    os.write(insertFunction(item.second))
-                    bytes.add(item.second)
+                    val byteArray = insertFunction(item.second)
+                    os.write(byteArray)
+                    bytes.add(byteArray)
                     var name = item.first.replace('/', '.')
                     classArr.add(name.substring(0, name.length-6))
                 } else {
