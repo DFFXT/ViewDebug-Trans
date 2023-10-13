@@ -1,8 +1,8 @@
 package com.example.viewdebugtrans.R
 
-import java.io.File
-import java.nio.ByteBuffer
-import java.util.Base64
+import com.android.utils.forEach
+import org.w3c.dom.Node
+import javax.xml.parsers.DocumentBuilderFactory
 
 /**
  * 字符串转16进制，16进制转字符串
@@ -11,51 +11,79 @@ object StringToHex {
 
     @JvmStatic
     fun main(vararg args: String) {
-        println(revert(md5(File("").absolutePath)))
+        transformXml(
+            "<resources>\n" +
+                    "\n" +
+                    "    <style name=\"user_item\">\n" +
+                    "        <item name=\"android:layout_height\">@dimen/user_fragment_item_width_full</item>\n" +
+                    "        <item name=\"android:layout_width\">@dimen/user_fragment_item_width_full</item>\n" +
+                    "    </style>\n" +
+                    "\n" +
+                    "</resources>"
+        )
+        println(builder.toString())
     }
 
-    fun md5(string: String): String {
-        val mm = "0123456789ABCDEF"
-        val builder = StringBuilder()
+    private val builder = StringBuilder()
 
-        val buffer = string.toByteArray()
-        for (byte in buffer) {
-            builder.append(mm.get((byte.toInt() and 0xf0 shr 4)).toString())
-            builder.append((mm.get(byte.toInt() and 0x0f)).toString())
+    private fun serverTransform(xml: String): String? {
+        if (xml.isEmpty()) return null
+        val text = if (xml.startsWith("<resources") || xml.startsWith("<?xml")) {
+            xml
+        } else {
+            "<?xml version=\"1.0\" encoding=\"utf-8\" ?><resources>$xml</resources>"
         }
-
-        return builder.toString()
+        val builder = DocumentBuilderFactory.newDefaultInstance().newDocumentBuilder()
+        try {
+            builder.parse(text.byteInputStream())
+            return text
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
+    private fun transformXml(xml: String) {
+        val text = if (xml.startsWith("<resources") || xml.startsWith("<?xml")) {
+            xml
+        } else {
+            "<?xml version=\"1.0\" encoding=\"utf-8\" ?><resources>$xml</resources>"
+        }
+        val builder = DocumentBuilderFactory.newDefaultInstance().newDocumentBuilder()
+        val doc = builder.parse(text.byteInputStream())
+        doc.childNodes.forEach {
+            parse(it)
+        }
     }
 
-    fun revert(hex: String): String {
-        println(hex)
-        //Base64.getEncoder().encode("")
-        val buffer = ByteBuffer.allocate(hex.length * 4)
-        val mm = HashMap<Char, Int>()
-        mm['0'] = 0
-        mm['1'] = 1
-        mm['2'] = 2
-        mm['3'] = 3
-        mm['4'] = 4
-        mm['5'] = 5
-        mm['6'] = 6
-        mm['7'] = 7
-        mm['8'] = 8
-        mm['9'] = 9
-        mm['A'] = 10
-        mm['B'] = 11
-        mm['C'] = 12
-        mm['D'] = 13
-        mm['E'] = 14
-        mm['F'] = 15
-        for (i in 0 until hex.length step 2) {
-            val c1 = hex.get(i)
-            val c2 = hex.get(i + 1)
-            buffer.put((mm[c1]!! * 16 + mm[c2]!!.toInt()).toByte())
+    private fun parse(node: Node) {
+        val name = node.nodeName
+        when (name) {
+            "string", "color", "integer" -> {
+                addItem(node)
+            }
+
+            "resources" -> {
+                node.childNodes.forEach {
+                    parse(it)
+                }
+            }
         }
-        val bytes = ByteArray(buffer.position())
-        buffer.position(0)
-        buffer.get(bytes)
-        return String(bytes)
+    }
+
+    private fun addItem(node: Node) {
+        if (node.nodeType == Node.ELEMENT_NODE) {
+            builder.append("<${node.nodeName}")
+            node.attributes.forEach {
+                builder.append(" ${it.nodeName}=")
+                builder.append("\"${it.nodeValue}\"")
+            }
+            builder.append(">")
+            node.childNodes.forEach {
+                addItem(it)
+            }
+            builder.append("</${node.nodeName}>\n")
+        } else if (node.nodeType == Node.TEXT_NODE) {
+            builder.append(node.nodeValue)
+        }
     }
 }

@@ -27,7 +27,10 @@ object PushFileManager {
     const val TYPE_ANIM = "anim"
     const val TYPE_FILE = "file"
     const val TYPE_DEX = "dex"
+    // 规则文件
     const val TYPE_XML_RULE = "rules"
+    // xml value 文件
+    const val TYPE_XML_VALUES = "values"
 
     /**
      * 初始化

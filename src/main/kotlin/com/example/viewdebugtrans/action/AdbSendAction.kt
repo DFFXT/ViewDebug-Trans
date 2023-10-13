@@ -1,10 +1,12 @@
 package com.example.viewdebugtrans.action
 
-import com.example.viewdebugtrans.*
-import com.example.viewdebugtrans.R.MakeRClass
+import com.example.viewdebugtrans.PushFileManager
+import com.example.viewdebugtrans.ShowLogAction
 import com.example.viewdebugtrans.agreement.AdbAgreement
 import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.agreement.Device
+import com.example.viewdebugtrans.interceptor.*
+import com.example.viewdebugtrans.show
 import com.example.viewdebugtrans.util.showDialog
 import com.example.viewdebugtrans.util.showTip
 import com.google.gson.JsonElement
@@ -12,13 +14,12 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.LocalFileSystem
 import java.io.File
+import java.util.*
 import kotlin.concurrent.thread
 
 
@@ -51,6 +52,15 @@ processRequestF.invoke(tasktI, location)
 //window.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.internal.KotlinBytecodeToolWindow")
 //getBytecodeForFile
  */
+
+private val beforeSendMap = LinkedList<IBeforeSend>().apply {
+    add(KotlinBeforeSend())
+    add(XmlBeforeSend())
+    add(XmlValueBeforeSend())
+}
+private val afterSendMap = LinkedList<IAfterSend>().apply {
+    add(KotlinAfterSend())
+}
 
 class AdbSendAction(private val device: Device, private val agreement: AdbAgreement) : AnAction(device.run {
     if (this.online) {
@@ -131,7 +141,10 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
      * 推送之前，可以对文件进行加工和处理
      */
     private fun beforeSend(project: Project, e: AnActionEvent, fileInfo: FileInfo) {
-        val originPath = fileInfo.originPath
+        for (interceptor in beforeSendMap) {
+            interceptor.beforeSend(project, e, fileInfo, device, agreement)
+        }
+        /*val originPath = fileInfo.originPath
         if (originPath.endsWith(".java") || originPath.endsWith(".kt")) {
             // 代码文件，需要编译和R文件
             val vf = LocalFileSystem.getInstance().findFileByIoFile(File(originPath)) ?: return showTip(
@@ -157,7 +170,7 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
                 PushFileManager.pushFile(it, agreement.destDir + "/" + "merger-${index}.xml", PushFileManager.TYPE_XML_RULE, extra = null)
             }
             // send(fileInfo, e)
-        }
+        }*/
     }
 
     /**
@@ -167,7 +180,13 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
         val target = File(fileInfo.path)
         if (target.exists()) {
             val destFolder = agreement.destDir
-            PushFileManager.pushFile(fileInfo.path, destFolder + "/" + target.name, fileInfo.type, fileInfo.originPath, fileInfo.extra)
+            PushFileManager.pushFile(
+                fileInfo.path,
+                destFolder + "/" + target.name,
+                fileInfo.type,
+                fileInfo.originPath,
+                fileInfo.extra
+            )
             PushFileManager.pushApply()
         }
     }
@@ -178,39 +197,38 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
     private fun afterSend(fileInfo: FileInfo, e: AnActionEvent) {
         val target = File(fileInfo.path)
         if (target.exists()) {
-            if (fileInfo.type == PushFileManager.TYPE_DEX) {
-                val dest = File(target.parent, "view-debug-delete.dex")
-                if (dest.exists()) {
-                    // 删除原产物
-                    dest.delete()
-                }
-                // 重命名产物文件
-                val renameResult = target.renameTo(dest)
-                show(null, "last rename $renameResult")
-            }
             showDialog(e.project!!, "推送成功", "提示", arrayOf("确定"), 0)
         } else {
             showDialog(e.project!!, "推送失败，产物文件不存在: ${fileInfo.path}", "提示", arrayOf("确定"), 0)
             show(e.project!!, "不存在${fileInfo.path}")
         }
         PushFileManager.reset()
+        e.project?.let { p ->
+            afterSendMap.forEach {
+                it.afterSend(p, e, fileInfo, device, agreement)
+            }
+        }
+
     }
 
 
     private fun getFileType(path: String): String {
         val file = File(path)
         val parent = file.parent
-        if (parent.contains(PushFileManager.TYPE_DRAWABLE)) {
+        if (parent.startsWith("drawable")) {
             return PushFileManager.TYPE_DRAWABLE
         }
-        if (parent.contains(PushFileManager.TYPE_LAYOUT)) {
+        if (parent.startsWith("layout")) {
             return PushFileManager.TYPE_LAYOUT
         }
-        if (parent.contains(PushFileManager.TYPE_ANIM)) {
+        if (parent.startsWith("anim")) {
             return PushFileManager.TYPE_ANIM
         }
-        if (parent.contains(PushFileManager.TYPE_COLOR)) {
+        if (parent.startsWith("color")) {
             return PushFileManager.TYPE_COLOR
+        }
+        if (parent.startsWith("values")) {
+            return PushFileManager.TYPE_XML_VALUES
         }
         return PushFileManager.TYPE_FILE
     }
