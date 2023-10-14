@@ -214,7 +214,7 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
 
     private fun getFileType(path: String): String {
         val file = File(path)
-        val parent = file.parent
+        val parent = file.parentFile.name
         if (parent.startsWith("drawable")) {
             return PushFileManager.TYPE_DRAWABLE
         }

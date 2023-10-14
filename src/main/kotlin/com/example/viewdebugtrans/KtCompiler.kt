@@ -9,7 +9,16 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.ui.ComboBox
 import com.intellij.psi.PsiFile
+import org.jetbrains.kotlin.codegen.ClassBuilderFactories
+import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.config.JVMConfigurationKeys
+import org.jetbrains.kotlin.config.JvmTarget
+import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
+import org.jetbrains.kotlin.idea.core.KotlinCompilerIde
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.org.objectweb.asm.*
 import java.io.File
 import java.io.FileOutputStream
@@ -28,68 +37,76 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
     fun compile(fileInfo: AdbSendAction.FileInfo, e: AnActionEvent): String {
         // 得到KtFile对象，这个对象是kotlin插件中声明的，其类加载器能够加载kotlin插件中的其它类
         this.fileInfo = fileInfo
-        val KtFile = e.getData(CommonDataKeys.PSI_FILE)
-        if (KtFile is PsiFile) {
-            show(null, "编译文件："+KtFile.toString())
+        val ktFile = e.getData(CommonDataKeys.PSI_FILE) as KtFile
+        if (ktFile is PsiFile) {
+            show(null, "编译文件："+ktFile.toString())
         }
         // 通过kotlin插件的类加载器加载KotlinCompilerIde对象
-        val KotlinCompilerIde =
-            KtFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde")
+        val kotlinCompilerIde =
+            ktFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde")
         // 加载kotlin编译配置
-        val CompilerConfiguration =
-            KtFile.javaClass.classLoader.loadClass("org.jetbrains.kotlin.config.CompilerConfiguration")
+        val compilerConfiguration =
+            ktFile.javaClass.classLoader.loadClass("org.jetbrains.kotlin.config.CompilerConfiguration")
         // 加载kotlin类生成工厂
-        val ClassBuilderFactory =
-            KtFile.javaClass.classLoader.loadClass("org.jetbrains.kotlin.codegen.ClassBuilderFactory")
-        val Function1 = KtFile.javaClass.classLoader.loadClass("kotlin.jvm.functions.Function1")
+        val classBuilderFactory =
+            ktFile.javaClass.classLoader.loadClass("org.jetbrains.kotlin.codegen.ClassBuilderFactory")
+        val Function1 = ktFile.javaClass.classLoader.loadClass("kotlin.jvm.functions.Function1")
         // KotlinCompilerIde构造器
-        val constructor = KotlinCompilerIde.getConstructor(
-            KtFile::class.java,
-            CompilerConfiguration,
-            ClassBuilderFactory,
+        val constructor = kotlinCompilerIde.getConstructor(
+            ktFile::class.java,
+            compilerConfiguration,
+            classBuilderFactory,
             Function1,
             Boolean::class.java
         )
         // 加载KotlinCompilerIde的伴生类
         val com =
-            KtFile.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde\$Companion")
+            ktFile.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde\$Companion")
         com.declaredMethods
         // 加载伴生类中的getDefaultCompilerConfiguration，用于获取默认的编译配置
         val getDefaultCompilerConfiguration =
-            com.getDeclaredMethod("getDefaultCompilerConfiguration", KtFile::class.java)
+            com.getDeclaredMethod("getDefaultCompilerConfiguration", ktFile::class.java)
         getDefaultCompilerConfiguration.isAccessible = true
 
 
         // 加载kotlin类生成工厂
-        val ClassBuilderFactories =
-            KtFile.javaClass.classLoader.loadClass("org.jetbrains.kotlin.codegen.ClassBuilderFactories")
+        val classBuilderFactories =
+            ktFile.javaClass.classLoader.loadClass("org.jetbrains.kotlin.codegen.ClassBuilderFactories")
         // 获取默认的BINARIES类生成器
-        val BINARIES = ClassBuilderFactories.getDeclaredField("BINARIES").get(null)
+        val BINARIES = classBuilderFactories.getDeclaredField("BINARIES").get(null)
         // 生成KotlinCompilerIde的Function1参数
         val resolutionFacadeProvider = object : kotlin.jvm.functions.Function1<Any, Any> {
             override fun invoke(p1: Any): Any {
                 // 这个方法需要返回settingLanguageVersion对象
                 // 经过分析kotlin插件源码，可通过KtFile的扩展方法来获取，扩展方法位于ResolutionUtils.getResolutionFacade
                 val r =
-                    KtFile::class.java.classLoader.loadClass("org.jetbrains.kotlin.idea.caches.resolve.ResolutionUtils")
-                val ktElement = KtFile::class.java.classLoader.loadClass("org.jetbrains.kotlin.psi.KtElement")
-                return r.getDeclaredMethod("getResolutionFacade", ktElement).invoke(null, KtFile)
+                    ktFile::class.java.classLoader.loadClass("org.jetbrains.kotlin.idea.caches.resolve.ResolutionUtils")
+                val ktElement = ktFile::class.java.classLoader.loadClass("org.jetbrains.kotlin.psi.KtElement")
+                return r.getDeclaredMethod("getResolutionFacade", ktElement).invoke(null, ktFile)
 
             }
         }
 
         // 实例化KotlinCompilerIde对象
+        val configuration = CompilerConfiguration()
+        configuration.put(JVMConfigurationKeys.DISABLE_OPTIMIZATION, true)
+        //configuration.put(JVMConfigurationKeys.IR, true)
+        val jvmTargets = ComboBox(JvmTarget.supportedValues().map { it.description }.toTypedArray())
+        configuration.put(JVMConfigurationKeys.JVM_TARGET, JvmTarget.fromString(jvmTargets.selectedItem as String)!!)
+        configuration.languageVersionSettings = ktFile.languageVersionSettings
+        val acc = KotlinCompilerIde(ktFile, CompilerConfiguration(), ClassBuilderFactories.TEST)
         val ccc = constructor.newInstance(
-            KtFile,
-            CompilerConfiguration.newInstance(),
+            ktFile,
+            configuration,
             BINARIES,
             resolutionFacadeProvider,
             false
         )
 
         // 调用KotlinCompilerIde的compileToBytecode方法将kotlin文件编译成字节码文件，该方法返回List对象，元素类型包含path、bytecode字段
-        val ficompileToDirectoryFiled = KotlinCompilerIde.getDeclaredMethod("compileToBytecode")
-        val g = ficompileToDirectoryFiled.invoke(ccc)
+        val ficompileToDirectoryFiled = kotlinCompilerIde.getDeclaredMethod("compileToBytecode")
+        //val g = ficompileToDirectoryFiled.invoke(ccc)
+        val g = acc.compileToBytecode()
         val compiledFiles = g as List<Any>
         val result = compiledFiles.map {
             // 取元素的path、bytecode字段
@@ -236,6 +253,11 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
                 exceptions: Array<out String>?
             ): MethodVisitor {
                 //show(null, "fun $name")
+                /*return object :AdviceAdapter(Opcodes.ASM4, super.visitMethod(access, name, descriptor, signature, exceptions), access, name, descriptor) {
+                    override fun visitInsn(opcode: Int) {
+                        super.visitInsn(opcode)
+                    }
+                }*/
                 return super.visitMethod(access, name, descriptor, signature, exceptions)
             }
 
