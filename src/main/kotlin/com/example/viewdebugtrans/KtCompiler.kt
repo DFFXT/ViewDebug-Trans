@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
 import org.jetbrains.kotlin.idea.core.KotlinCompilerIde
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.org.objectweb.asm.*
+import org.jetbrains.org.objectweb.asm.commons.AdviceAdapter
 import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
@@ -252,29 +253,27 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
                 signature: String?,
                 exceptions: Array<out String>?
             ): MethodVisitor {
-                //show(null, "fun $name")
-                /*return object :AdviceAdapter(Opcodes.ASM4, super.visitMethod(access, name, descriptor, signature, exceptions), access, name, descriptor) {
-                    override fun visitInsn(opcode: Int) {
-                        super.visitInsn(opcode)
-                    }
-                }*/
-                return super.visitMethod(access, name, descriptor, signature, exceptions)
-            }
+                // 由于sdk内部会添加’_$_clearFindViewByIdCache‘方法，需要删除
+                if (name == "onDestroyView") {
+                    return object : AdviceAdapter(Opcodes.ASM4, super.visitMethod(access, name, descriptor, signature, exceptions), access, name, descriptor) {
 
-            override fun visitEnd() {
-                // 暂给所有类添加这个特殊可重载空方法
-                val methodVisitor = writer.visitMethod(
-                    Opcodes.ACC_PUBLIC,
-                    "_\$_clearFindViewByIdCache",
-                    "()V",
-                    null,
-                    null
-                );
-                methodVisitor.visitCode();
-                methodVisitor.visitInsn(Opcodes.RETURN);
-                methodVisitor.visitMaxs(0, 1);
-                methodVisitor.visitEnd();
-                super.visitEnd()
+                        override fun visitMethodInsn(
+                            opcodeAndSource: Int,
+                            owner: String?,
+                            name: String?,
+                            descriptor: String?,
+                            isInterface: Boolean
+                        ) {
+                            println("visitMethodInsn: $name")
+                            if (name == "_\$_clearFindViewByIdCache") {
+                                return
+                            }
+                            super.visitMethodInsn(opcodeAndSource, owner, name, descriptor, isInterface)
+                        }
+                    }
+                }
+
+                return super.visitMethod(access, name, descriptor, signature, exceptions)
             }
         }
         reader.accept(visitor, ClassReader.EXPAND_FRAMES)
