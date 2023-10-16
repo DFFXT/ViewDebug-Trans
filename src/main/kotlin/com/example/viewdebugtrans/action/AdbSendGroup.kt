@@ -6,6 +6,7 @@ import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.agreement.Device
 import com.example.viewdebugtrans.util.getPackageName
 import com.intellij.openapi.actionSystem.ActionGroup
+import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 
@@ -16,6 +17,10 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 class AdbSendGroup : ActionGroup() {
     companion object {
         var currentDevices: List<Device>? = null
+    }
+
+    override fun getActionUpdateThread(): ActionUpdateThread {
+        return super.getActionUpdateThread()
     }
 
     override fun getChildren(e: AnActionEvent?): Array<AnAction> {
@@ -30,7 +35,7 @@ class AdbSendGroup : ActionGroup() {
             if (d.online) {
                 val agreement = d.getAgreement(e?.project?.getPackageName())
                 if (agreement != null) {
-                    actions.add(AdbSendAction(d, agreement))
+                    actions.add(AdbDeviceSendGroup(d, agreement))
                 } else {
                     actions.add(AdbDeviceConnectAction(d))
                 }

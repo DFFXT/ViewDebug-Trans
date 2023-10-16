@@ -68,9 +68,9 @@ object PushFileManager {
     /**
      * 推送配置文件
      */
-    fun pushApply() {
+    fun pushApply(reboot: Boolean) {
         if (sendAction.isNotEmpty()) {
-            Config.saveConfig(sendAction)
+            Config.saveConfig(sendAction, reboot)
             val cmd = arrayOf(
                 adbPath,
                 "-s",

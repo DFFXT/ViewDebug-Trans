@@ -54,8 +54,9 @@ object Config {
 
     /**
      * 输出配置文件，用于文件推送
+     * @param reboot 推送后是否立即重启
      */
-    fun saveConfig(fileItems: List<PushFileManager.FileItem>) {
+    fun saveConfig(fileItems: List<PushFileManager.FileItem>, reboot: Boolean) {
         val config = getConfigFile()
         val json = JsonObject()
         val arr = JsonArray()
@@ -68,6 +69,7 @@ object Config {
             arr.add(item)
         }
         json.add("config", arr)
+        json.addProperty("reboot", reboot)
         config.writeBytes(json.toString().toByteArray())
     }
 

@@ -62,13 +62,9 @@ private val afterSendMap = LinkedList<IAfterSend>().apply {
     add(KotlinAfterSend())
 }
 
-class AdbSendAction(private val device: Device, private val agreement: AdbAgreement) : AnAction(device.run {
-    if (this.online) {
-        this.serialNumber + " - " + agreement.pkgName
-    } else {
-        this.serialNumber + " - " + "offline"
-    }
-}) {
+open class AdbSendAction(protected val device: Device, private val agreement: AdbAgreement, private val reboot: Boolean) : AnAction(
+    if (reboot) "推送并重启应用" else "推送"
+) {
     override fun actionPerformed(e: AnActionEvent) {
         try {
             // return
@@ -102,32 +98,6 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
                     }
                 })
             }
-
-            /*if (path.endsWith(".java") || path.endsWith(".kt")) {
-                // 代码文件，需要编译和R文件
-                val vf = LocalFileSystem.getInstance().findFileByIoFile(File(path)) ?: return showTip(
-                    project,
-                    "文件不是真实文件"
-                )
-                val module = ModuleUtil.findModuleForFile(vf, project) ?: return showTip(project, "文件不属于任何模块")
-                val makeRClass = MakeRClass()
-                val p = path
-
-                makeRClass.make(module, path) {
-                    // 经过编译的产物路径
-                    path = CompileFileAndSend(module).compile(p, e)
-
-                    makeRClass.delete()
-                    if (path.endsWith(".dex")) {
-                        fileType = PushFileManager.TYPE_DEX
-                    }
-                    send(path, fileType, originPath, e)
-                }
-
-            } else if (path.endsWith(".xml") && fileType == PushFileManager.TYPE_LAYOUT) {
-                XmlRulesSend().send(project, agreement)
-                send(path, fileType, originPath, e)
-            }*/
         } catch (exception: Exception) {
             show(
                 project = e.project!!, exception.message + "\n" +
@@ -144,33 +114,6 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
         for (interceptor in beforeSendMap) {
             interceptor.beforeSend(project, e, fileInfo, device, agreement)
         }
-        /*val originPath = fileInfo.originPath
-        if (originPath.endsWith(".java") || originPath.endsWith(".kt")) {
-            // 代码文件，需要编译和R文件
-            val vf = LocalFileSystem.getInstance().findFileByIoFile(File(originPath)) ?: return showTip(
-                project,
-                "文件不是真实文件"
-            )
-            val module = ModuleUtil.findModuleForFile(vf, project) ?: return showTip(project, "文件不属于任何模块")
-            val makeRClass = MakeRClass()
-
-            makeRClass.make(module, originPath) {
-                // 经过编译的产物路径
-                fileInfo.path = CompileFileAndSend(module).compile(fileInfo, e)
-
-                makeRClass.delete()
-                if (fileInfo.path.endsWith(".dex")) {
-                    fileInfo.type = PushFileManager.TYPE_DEX
-                }
-                // send(fileInfo, e)
-            }
-
-        } else if (originPath.endsWith(".xml") && fileInfo.type == PushFileManager.TYPE_LAYOUT) {
-            XmlRulesFetch().getXmlRules(project).forEachIndexed { index, it ->
-                PushFileManager.pushFile(it, agreement.destDir + "/" + "merger-${index}.xml", PushFileManager.TYPE_XML_RULE, extra = null)
-            }
-            // send(fileInfo, e)
-        }*/
     }
 
     /**
@@ -187,14 +130,14 @@ class AdbSendAction(private val device: Device, private val agreement: AdbAgreem
                 fileInfo.originPath,
                 fileInfo.extra
             )
-            PushFileManager.pushApply()
+            PushFileManager.pushApply(reboot)
         }
     }
 
     /**
      * 推送结束
      */
-    private fun afterSend(fileInfo: FileInfo, e: AnActionEvent) {
+    protected open fun afterSend(fileInfo: FileInfo, e: AnActionEvent) {
         val target = File(fileInfo.path)
         if (target.exists()) {
             showDialog(e.project!!, "推送成功", "提示", arrayOf("确定"), 0)
