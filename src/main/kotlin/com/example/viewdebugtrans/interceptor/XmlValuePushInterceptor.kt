@@ -2,36 +2,29 @@ package com.example.viewdebugtrans.interceptor
 
 import com.android.utils.forEach
 import com.example.viewdebugtrans.PushFileManager
-import com.example.viewdebugtrans.XmlRulesFetch
-import com.example.viewdebugtrans.action.AdbSendAction
+import com.example.viewdebugtrans.action.PushManager
 import com.example.viewdebugtrans.agreement.AdbAgreement
 import com.example.viewdebugtrans.agreement.Device
-import com.example.viewdebugtrans.util.getViewDebugDir
-import com.example.viewdebugtrans.util.showTip
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.project.Project
-import com.intellij.psi.xml.XmlDocument
 import org.w3c.dom.Node
-import java.io.File
-import javax.xml.parsers.DocumentBuilder
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
  * 推送value裂隙xml文件
  */
-class XmlValueBeforeSend:IBeforeSend {
+class XmlValuePushInterceptor : IPushInterceptor {
 
-    override fun beforeSend(project: Project, e: AnActionEvent, fileInfo: AdbSendAction.FileInfo, device: Device, agreement: AdbAgreement) {
+    override fun beforePush(project: Project, fileInfo: PushManager.FileInfo, device: Device, agreement: AdbAgreement) {
         if (fileInfo.type == PushFileManager.TYPE_XML_VALUES) {
 
-            val editor = e.getData(PlatformDataKeys.EDITOR) ?: return
-            var selection = editor.selectionModel.selectedText?.trim() ?: return
-            val xml = valueXmlTransform(selection) ?: return showTip(project, "请选中正确的values-xml内容")
-            val localFile = File(project.getViewDebugDir(), "values-selected.xml")
-            localFile.writeText(xml)
-            // 将临时文件作为可推送目标
-            fileInfo.path = localFile.absolutePath
+            return
+            /* val editor = e.getData(PlatformDataKeys.EDITOR) ?: return
+             var selection = editor.selectionModel.selectedText?.trim() ?: return
+             val xml = valueXmlTransform(selection) ?: return showTip(project, "请选中正确的values-xml内容")
+             val localFile = File(project.getViewDebugDir(), "values-selected.xml")
+             localFile.writeText(xml)
+             // 将临时文件作为可推送目标
+             fileInfo.path = localFile.absolutePath*/
             /*XmlRulesFetch().getXmlRules(project).forEachIndexed { index, it ->
                 PushFileManager.pushFile(it, agreement.destDir + "/" + "merger-${index}.xml", PushFileManager.TYPE_XML_RULE, extra = null)
             }*/
@@ -39,6 +32,7 @@ class XmlValueBeforeSend:IBeforeSend {
 
         }
     }
+
     private fun valueXmlTransform(xml: String): String? {
         if (xml.isEmpty()) return null
         val text = if (xml.startsWith("<resources") || xml.startsWith("<?xml")) {
@@ -55,6 +49,7 @@ class XmlValueBeforeSend:IBeforeSend {
         }
         return null
     }
+
     private val builder = StringBuilder()
     private fun transformXml(xml: String) {
         val selection = "<resources>$xml</resources>"
@@ -64,14 +59,16 @@ class XmlValueBeforeSend:IBeforeSend {
             parse(it)
         }
     }
-    private fun parse(node : Node) {
+
+    private fun parse(node: Node) {
         val name = node.nodeName
-        when(name) {
+        when (name) {
             "string", "color" -> {
                 addItem(node)
             }
         }
     }
+
     private fun addItem(node: Node) {
         if (node.nodeType == Node.DOCUMENT_NODE) {
             builder.append("<${node.nodeName}")

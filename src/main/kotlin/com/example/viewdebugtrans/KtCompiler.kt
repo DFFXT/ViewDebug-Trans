@@ -3,12 +3,14 @@ package com.example.viewdebugtrans
 import com.android.tools.r8.*
 import com.android.tools.r8.origin.Origin
 import com.example.viewdebugtrans.action.AdbSendAction
+import com.example.viewdebugtrans.action.PushManager
 import com.example.viewdebugtrans.util.getViewDebugDir
 import com.example.viewdebugtrans.util.showTip
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.psi.PsiFile
 import org.jetbrains.kotlin.codegen.ClassBuilderFactories
@@ -30,18 +32,14 @@ import java.util.zip.ZipOutputStream
  * 使用kotlin插件的【Show Kotlin Bytecode】功能编译代码
  */
 class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module) {
-    private lateinit var fileInfo: AdbSendAction.FileInfo
+    private lateinit var fileInfo: PushManager.FileInfo
 
     /**
      * @return 编译后的dex路径
      */
-    fun compile(fileInfo: AdbSendAction.FileInfo, e: AnActionEvent): String {
+    fun compile(project: Project, fileInfo: PushManager.FileInfo, ktFile: KtFile) {
         // 得到KtFile对象，这个对象是kotlin插件中声明的，其类加载器能够加载kotlin插件中的其它类
         this.fileInfo = fileInfo
-        val ktFile = e.getData(CommonDataKeys.PSI_FILE) as KtFile
-        if (ktFile is PsiFile) {
-            show(null, "编译文件："+ktFile.toString())
-        }
         // 通过kotlin插件的类加载器加载KotlinCompilerIde对象
         val kotlinCompilerIde =
             ktFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde")
@@ -119,7 +117,7 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
             val byteCode = byteCodeFiled.get(it) as ByteArray
             Pair(path, byteCode)
         }
-        show(e.project!!, result.size.toString())
+        show(project, result.size.toString())
         val jarPath = module.project.getViewDebugDir().absolutePath + File.separator + "view-debug.jar"
 
         // 输出文本
@@ -135,7 +133,8 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
             renameToFile.delete()
             it.renameTo(renameToFile)
         }
-        return generatedDex
+        fileInfo.path = generatedDex
+        // return generatedDex
     }
 
 

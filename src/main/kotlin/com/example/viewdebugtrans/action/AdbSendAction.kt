@@ -1,26 +1,11 @@
 package com.example.viewdebugtrans.action
 
-import com.example.viewdebugtrans.PushFileManager
-import com.example.viewdebugtrans.ShowLogAction
 import com.example.viewdebugtrans.agreement.AdbAgreement
-import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.agreement.Device
-import com.example.viewdebugtrans.interceptor.*
-import com.example.viewdebugtrans.show
-import com.example.viewdebugtrans.util.showDialog
-import com.example.viewdebugtrans.util.showTip
-import com.google.gson.JsonElement
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.progress.ProgressIndicator
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.Task
-import com.intellij.openapi.project.Project
-import java.io.File
-import java.util.*
-import kotlin.concurrent.thread
 
 
 /**
@@ -53,134 +38,22 @@ processRequestF.invoke(tasktI, location)
 //getBytecodeForFile
  */
 
-private val beforeSendMap = LinkedList<IBeforeSend>().apply {
-    add(KotlinBeforeSend())
-    add(XmlBeforeSend())
-    add(XmlValueBeforeSend())
-}
-private val afterSendMap = LinkedList<IAfterSend>().apply {
-    add(KotlinAfterSend())
-}
 
-open class AdbSendAction(protected val device: Device, private val agreement: AdbAgreement, private val reboot: Boolean) : AnAction(
+open class AdbSendAction(
+    protected val device: Device,
+    private val agreement: AdbAgreement,
+    private val reboot: Boolean
+) : AnAction(
     if (reboot) "推送并重启应用" else "推送"
 ) {
     override fun actionPerformed(e: AnActionEvent) {
-        try {
-            // return
-            ShowLogAction.clear()
-            val editor = e.getData(PlatformDataKeys.EDITOR) ?: return
-            val project = e.project ?: return
-            val path = FileDocumentManager.getInstance().getFile(editor.document)?.path ?: return
-            val originPath = path
-            val fileType: String = getFileType(originPath)
-            val fileInfo = FileInfo(path, path, fileType)
-            val adbP = AdbDevicesManager.getAdbPath(project)
-            if (adbP == null) {
-                showTip(project, "没有adb可用")
-                return
-            }
-            PushFileManager.init(project, device, agreement, adbP)
-            // 保存当前内容到磁盘，否则有可能推送的不是最新内容，文件内容变更后会不定时的刷新到磁盘，刷新前推送就会导致内容不是最新
-            FileDocumentManager.getInstance().saveDocument(editor.document)
-            thread {
-                ProgressManager.getInstance().run(object : Task.Backgroundable(project, "推送中") {
-                    override fun run(indicator: ProgressIndicator) {
-                        beforeSend(project, e, fileInfo)
-                        if (!indicator.isCanceled) {
-                            send(fileInfo)
-                            afterSend(fileInfo, e)
-                        }
-                    }
-
-                    override fun onCancel() {
-                        super.onCancel()
-                    }
-                })
-            }
-        } catch (exception: Exception) {
-            show(
-                project = e.project!!, exception.message + "\n" +
-                        exception.stackTraceToString()
-            )
-        }
-
-    }
-
-    /**
-     * 推送之前，可以对文件进行加工和处理
-     */
-    private fun beforeSend(project: Project, e: AnActionEvent, fileInfo: FileInfo) {
-        for (interceptor in beforeSendMap) {
-            interceptor.beforeSend(project, e, fileInfo, device, agreement)
+        val editor = e.getData(PlatformDataKeys.EDITOR) ?: return
+        // 保存当前内容到磁盘，否则有可能推送的不是最新内容，文件内容变更后会不定时的刷新到磁盘，刷新前推送就会导致内容不是最新
+        FileDocumentManager.getInstance().saveDocument(editor.document)
+        e.project?.let {
+            val path = e.getData(PlatformDataKeys.VIRTUAL_FILE)?.path ?: return
+            PushManager(device, agreement, reboot).actionPerformed(it, path)
         }
     }
-
-    /**
-     * 推送
-     */
-    private fun send(fileInfo: FileInfo) {
-        val target = File(fileInfo.path)
-        if (target.exists()) {
-            val destFolder = agreement.destDir
-            PushFileManager.pushFile(
-                fileInfo.path,
-                destFolder + "/" + target.name,
-                fileInfo.type,
-                fileInfo.originPath,
-                fileInfo.extra
-            )
-            PushFileManager.pushApply(reboot)
-        }
-    }
-
-    /**
-     * 推送结束
-     */
-    protected open fun afterSend(fileInfo: FileInfo, e: AnActionEvent) {
-        val target = File(fileInfo.path)
-        if (target.exists()) {
-            showDialog(e.project!!, "推送成功", "提示", arrayOf("确定"), 0)
-        } else {
-            showDialog(e.project!!, "推送失败，产物文件不存在: ${fileInfo.path}", "提示", arrayOf("确定"), 0)
-            show(e.project!!, "不存在${fileInfo.path}")
-        }
-        PushFileManager.reset()
-        e.project?.let { p ->
-            afterSendMap.forEach {
-                it.afterSend(p, e, fileInfo, device, agreement)
-            }
-        }
-
-    }
-
-
-    private fun getFileType(path: String): String {
-        val file = File(path)
-        val parent = file.parentFile.name
-        if (parent.startsWith("drawable")) {
-            return PushFileManager.TYPE_DRAWABLE
-        }
-        if (parent.startsWith("layout")) {
-            return PushFileManager.TYPE_LAYOUT
-        }
-        if (parent.startsWith("anim")) {
-            return PushFileManager.TYPE_ANIM
-        }
-        if (parent.startsWith("color")) {
-            return PushFileManager.TYPE_COLOR
-        }
-        if (parent.startsWith("values")) {
-            return PushFileManager.TYPE_XML_VALUES
-        }
-        return PushFileManager.TYPE_FILE
-    }
-
-    /**
-     * @param originPath 原始文件路径
-     * @param path 要处理或者推送的路径
-     * @param type 文件类型
-     */
-    class FileInfo(val originPath: String, var path: String, var type: String, var extra: JsonElement? = null)
 
 }

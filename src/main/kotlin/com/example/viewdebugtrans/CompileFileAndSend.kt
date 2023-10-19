@@ -1,8 +1,16 @@
 package com.example.viewdebugtrans
 
 import com.example.viewdebugtrans.action.AdbSendAction
+import com.example.viewdebugtrans.action.PushManager
 import com.example.viewdebugtrans.util.getViewDebugDir
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
+import org.jetbrains.kotlin.idea.core.util.toPsiFile
+import org.jetbrains.kotlin.psi.KtFile
 import java.io.File
 
 
@@ -50,16 +58,11 @@ class CompileFileAndSend(module: com.intellij.openapi.module.Module): DxCompiler
         private var dxPath: String? = null
     }
 
-    fun compile(fileInfo: AdbSendAction.FileInfo, e: AnActionEvent): String {
-        val path = fileInfo.path
-        if (path.endsWith(".java")) {
-            //JavaByteCode().getByteCode(e)
-            return path
-                //return compileJava(path, "java", "class", getJavacPath())
-        } else if (path.endsWith(".kt")) {
-            return KtCompiler(module).compile(fileInfo, e)
+    fun compile(project: Project, fileInfo: PushManager.FileInfo) {
+        val vf = LocalFileSystem.getInstance().findFileByIoFile(File(fileInfo.path))?.toPsiFile(project)
+        if (vf is KtFile) {
+            KtCompiler(module).compile(project, fileInfo, vf)
         }
-        return path
     }
 
     /**
