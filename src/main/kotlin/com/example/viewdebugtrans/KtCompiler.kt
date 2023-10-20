@@ -2,17 +2,13 @@ package com.example.viewdebugtrans
 
 import com.android.tools.r8.*
 import com.android.tools.r8.origin.Origin
-import com.example.viewdebugtrans.action.AdbSendAction
 import com.example.viewdebugtrans.action.PushManager
 import com.example.viewdebugtrans.util.getViewDebugDir
 import com.example.viewdebugtrans.util.showTip
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
-import com.intellij.psi.PsiFile
 import org.jetbrains.kotlin.codegen.ClassBuilderFactories
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.JVMConfigurationKeys
@@ -93,10 +89,10 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
         val jvmTargets = ComboBox(JvmTarget.supportedValues().map { it.description }.toTypedArray())
         configuration.put(JVMConfigurationKeys.JVM_TARGET, JvmTarget.fromString(jvmTargets.selectedItem as String)!!)
         configuration.languageVersionSettings = ktFile.languageVersionSettings
-        val acc = KotlinCompilerIde(ktFile, CompilerConfiguration(), ClassBuilderFactories.TEST)
+        val acc = KotlinCompilerIde(ktFile, CompilerConfiguration(), ClassBuilderFactories.BINARIES)
         val ccc = constructor.newInstance(
             ktFile,
-            configuration,
+            compilerConfiguration.newInstance(),
             BINARIES,
             resolutionFacadeProvider,
             false
@@ -106,16 +102,9 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
         val ficompileToDirectoryFiled = kotlinCompilerIde.getDeclaredMethod("compileToBytecode")
         //val g = ficompileToDirectoryFiled.invoke(ccc)
         val g = acc.compileToBytecode()
-        val compiledFiles = g as List<Any>
-        val result = compiledFiles.map {
+        val result = g.map {
             // 取元素的path、bytecode字段
-            val pathFiled = it::class.java.getDeclaredField("path")
-            pathFiled.isAccessible = true
-            val path = pathFiled.get(it) as String
-            val byteCodeFiled = it::class.java.getDeclaredField("bytecode")
-            byteCodeFiled.isAccessible = true
-            val byteCode = byteCodeFiled.get(it) as ByteArray
-            Pair(path, byteCode)
+            Pair(it.path, it.bytecode)
         }
         show(project, result.size.toString())
         val jarPath = module.project.getViewDebugDir().absolutePath + File.separator + "view-debug.jar"
