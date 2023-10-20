@@ -83,7 +83,7 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
      */
     fun fetchRemoteAgreement(project: Project, device: Device, pkgName: String) {
         val adbP = getAnyAdbPath() ?: return
-        val agreementFile = File(getAgreementFilePath(project))
+        val agreementFile = File(createAgreementFilePath(project, device, pkgName))
         if (agreementFile.exists()) {
             agreementFile.delete()
         }
@@ -127,23 +127,22 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
                 device.serialNumber,
                 "pull",
                 "/data/local/tmp/$pkgName-agreement",
-                getAgreementFilePath(project)
+                agreementFile.absolutePath
             )
         )
         execute(arrayOf(
             adbP,
             "-s", device.serialNumber,"shell", "rm", "/data/local/tmp/$pkgName-agreement"
         ))
-        File(getAgreementFilePath(project)). let {
-            if (it.exists()) {
-                val agreement = AdbAgreement.parse(Utils.stringToMap(it.readText()))
-                device.addAgreement(agreement)
-            }
+        if (agreementFile.exists()) {
+            val agreement = AdbAgreement.parse(Utils.stringToMap(agreementFile.readText()))
+            device.addAgreement(agreement)
+            agreementFile.delete()
         }
     }
 
-    private fun getAgreementFilePath(project: Project): String {
-        return getAgreementFolder(project).absolutePath + File.separator + "agreement"
+    private fun createAgreementFilePath(project: Project, device: Device, pkgName: String): String {
+        return getAgreementFolder(project).absolutePath + File.separator + "agreement_" + device.serialNumber + "_" + pkgName
     }
 
     /**
