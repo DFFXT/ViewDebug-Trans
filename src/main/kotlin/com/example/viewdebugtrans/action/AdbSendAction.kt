@@ -52,8 +52,8 @@ open class AdbSendAction(
         val project = e.project ?: return
         if (reboot) {
             try {
-                if (agreement.versionSupport("0.20.4")) {
-                    showTip(project, "客户端版本过低，需0.20.4及以上")
+                if (!agreement.versionSupport("0.20.5")) {
+                    showTip(project, "客户端插件版本过低，需0.20.5及以上，当前版本${agreement.version}")
                     return
                 }
             } catch (e: Exception) {
