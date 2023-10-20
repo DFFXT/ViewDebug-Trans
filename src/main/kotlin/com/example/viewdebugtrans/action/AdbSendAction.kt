@@ -2,6 +2,7 @@ package com.example.viewdebugtrans.action
 
 import com.example.viewdebugtrans.agreement.AdbAgreement
 import com.example.viewdebugtrans.agreement.Device
+import com.example.viewdebugtrans.util.showTip
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.PlatformDataKeys
@@ -48,12 +49,23 @@ open class AdbSendAction(
 ) {
     override fun actionPerformed(e: AnActionEvent) {
         val editor = e.getData(PlatformDataKeys.EDITOR) ?: return
+        val project = e.project ?: return
+        if (reboot) {
+            try {
+                if (agreement.versionSupport("0.20.4")) {
+                    showTip(project, "客户端版本过低，需0.20.4及以上")
+                    return
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                showTip(project, e.message ?: "版本异常${agreement.version}")
+                return
+            }
+        }
         // 保存当前内容到磁盘，否则有可能推送的不是最新内容，文件内容变更后会不定时的刷新到磁盘，刷新前推送就会导致内容不是最新
         FileDocumentManager.getInstance().saveDocument(editor.document)
-        e.project?.let {
-            val path = e.getData(PlatformDataKeys.VIRTUAL_FILE)?.path ?: return
-            PushManager(device, agreement, reboot).actionPerformed(it, path)
-        }
+        val path = e.getData(PlatformDataKeys.VIRTUAL_FILE)?.path ?: return
+        PushManager(device, agreement, reboot).actionPerformed(project, path)
     }
 
 }
