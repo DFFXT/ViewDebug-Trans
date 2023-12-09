@@ -65,9 +65,13 @@ class XmlRulesFetch {
             // xml文件，需要xml规则文件
             val rulesPath = "$basePath/build/intermediates/incremental"
             val ruleFileDir = File(rulesPath)
-            if (ruleFileDir.exists()) {
+
+            /**
+             * 所属规则文件并添加到集合
+             */
+            fun search(dir: File): Boolean {
                 // 选择对应merge文件夹，过滤AndroidTestResources类型文件夹
-                val folder = ruleFileDir.listFiles()?.find { it.name.startsWith("merge") && it.name.endsWith("Resources") && !it.name.endsWith("AndroidTestResources") }
+                val folder = dir.listFiles()?.find { it.name.startsWith("merge") && it.name.endsWith("Resources") && !it.name.endsWith("AndroidTestResources") }
                 if (folder != null) {
                     // 需要设置不同的名称
                     val ruleFile = File(folder, "merger.xml")
@@ -77,13 +81,26 @@ class XmlRulesFetch {
                             rulePathsSet.add(ruleFile.absolutePath)
                             // 推送规则文件
                             show(project, "找到规则文件-----：$ruleFile")
+                            return true
                             // PushFileManager.pushFile(ruleFile.absolutePath, agreement.destDir + "/" + "merger-${index}.xml", "rules")
                         }
                     } else {
                         logSet.add("没有规则文件：$ruleFile")
                     }
                 } else {
-                    logSet.add("没有规则文件：$rulesPath")
+                    logSet.add("不存在规则文件 $dir")
+                }
+                return false
+            }
+
+            if (ruleFileDir.exists()) {
+                // incremental/mergeDebugResource
+                if (!search(ruleFileDir)) {
+                    // incremental/debug/mergeDebugResource
+                    if (!search(File(rulesPath, "debug"))) {
+                        // incremental/release/mergeReleaseResource
+                        search(File(rulesPath, "release"))
+                    }
                 }
             } else {
                 show(project, "null rulesPath（$basePath）不存在")
