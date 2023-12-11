@@ -1,5 +1,6 @@
 package com.example.viewdebugtrans
 
+import com.android.tools.idea.gradle.project.model.GradleAndroidModel
 import com.android.tools.idea.projectsystem.AndroidModuleSystem
 import com.android.tools.idea.projectsystem.androidProjectType
 import com.android.tools.idea.projectsystem.getHolderModule
@@ -65,7 +66,6 @@ class XmlRulesFetch {
             // xml文件，需要xml规则文件
             val rulesPath = "$basePath/build/intermediates/incremental"
             val ruleFileDir = File(rulesPath)
-
             /**
              * 所属规则文件并添加到集合
              */
@@ -95,12 +95,14 @@ class XmlRulesFetch {
 
             if (ruleFileDir.exists()) {
                 // incremental/mergeDebugResource
+                // 低版本gradle <=7.2
                 if (!search(ruleFileDir)) {
-                    // incremental/debug/mergeDebugResource
-                    if (!search(File(rulesPath, "debug"))) {
-                        // incremental/release/mergeReleaseResource
-                        search(File(rulesPath, "release"))
+                    // incremental/变体名称/mergeDebugResource
+                    val selectedVariantName = GradleAndroidModel.get(appModule)?.selectedVariantName
+                    if (!selectedVariantName.isNullOrEmpty()) {
+                        search(File(rulesPath, selectedVariantName))
                     }
+
                 }
             } else {
                 show(project, "null rulesPath（$basePath）不存在")
