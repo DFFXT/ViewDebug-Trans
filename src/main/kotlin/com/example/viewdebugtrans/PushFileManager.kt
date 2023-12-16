@@ -29,6 +29,8 @@ object PushFileManager {
     const val TYPE_DEX = "dex"
     // 规则文件
     const val TYPE_XML_RULE = "rules"
+    // 重新运行信号
+    const val TYPE_LAUNCH = "launch"
     // xml value 文件
     const val TYPE_XML_VALUES = "values"
 

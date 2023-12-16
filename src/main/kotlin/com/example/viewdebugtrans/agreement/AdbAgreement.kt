@@ -5,7 +5,9 @@ data class AdbAgreement(
     val version: String,
     val pkgName: String,
     val listenFile: String,
-    val destDir: String
+    val destDir: String,
+    // 清空信号文件名称
+    val clearSignalFileName: String?
 ) {
 
     /**
@@ -32,7 +34,8 @@ data class AdbAgreement(
                 version = map["version"] ?: "",
                 pkgName = map["pkgName"] ?: "",
                 listenFile = map["listenFile"] ?: "",
-                destDir = map["destDir"] ?: ""
+                destDir = map["destDir"] ?: "",
+                clearSignalFileName = map["clearSignalFileName"]
             )
         }
     }

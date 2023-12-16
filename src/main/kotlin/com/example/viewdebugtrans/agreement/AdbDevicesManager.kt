@@ -192,9 +192,18 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
      * device转换
      * 这个方法必须在运行的线程中执行
      */
-    fun getDevice(serialNumber: String, online: Boolean): Device {
+    private fun createDevice(serialNumber: String, online: Boolean): Device {
         return Device(serialNumber, serialNumber, online)
     }
+
+    /**
+     * 根据序列号获取存在的设备
+     */
+    fun getDevice(serialNumber: String): Device? {
+        return devices.find { it.serialNumber == serialNumber }
+    }
+
+
 
 
     fun getDeviceId(device: String): String {
@@ -213,7 +222,7 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
     }
 
     private fun deviceConnected(serialNumber: String, online: Boolean) {
-        val d = getDevice(serialNumber, online)
+        val d = createDevice(serialNumber, online)
         devices.removeIf { it.serialNumber == serialNumber}
         devices.add(d)
         launch(Dispatchers.IO) {

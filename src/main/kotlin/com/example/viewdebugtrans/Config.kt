@@ -1,6 +1,5 @@
 package com.example.viewdebugtrans
 
-import com.example.viewdebugtrans.util.Utils
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.intellij.openapi.project.Project
@@ -76,6 +75,7 @@ object Config {
     fun getConfigFile(): File {
         return File(getIdeaFolder(), "view-debug-config.json")
     }
+
 
   /*  fun getConfigRemotePath(): String {
         return "${getPackageName()}/cache/view-debug/view-debug-config.json"

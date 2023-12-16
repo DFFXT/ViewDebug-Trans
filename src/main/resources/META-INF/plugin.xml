@@ -38,7 +38,7 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-
+        <stepsBeforeRunProvider implementation="com.example.viewdebugtrans.ProjectListener$SendRunSignalBeforeRunTaskProvider"/>
     </extensions>
     <projectListeners>
         <listener class="com.example.viewdebugtrans.ProjectListener" topic="com.intellij.openapi.project.ProjectManagerListener"/>
