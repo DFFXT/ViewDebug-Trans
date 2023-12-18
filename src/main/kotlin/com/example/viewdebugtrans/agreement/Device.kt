@@ -1,6 +1,8 @@
 package com.example.viewdebugtrans.agreement
 
 import com.example.viewdebugtrans.execute
+import com.example.viewdebugtrans.util.getPackageName
+import com.intellij.openapi.project.Project
 
 data class Device(
     // id == serialNumber
@@ -28,4 +30,11 @@ data class Device(
     }
 
     fun getAgreement(pkgName: String?): AdbAgreement? = this.agreement.find { it.pkgName == pkgName }
+
+    /**
+     * 是否配对
+     */
+    fun isAgreementConnected(project: Project): Boolean {
+        return getAgreement(project.getPackageName()) != null
+    }
 }
