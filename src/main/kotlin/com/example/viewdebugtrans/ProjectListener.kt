@@ -3,6 +3,7 @@ package com.example.viewdebugtrans
 import com.android.sdklib.devices.DeviceManager
 import com.android.tools.idea.run.DeviceFutures
 import com.example.viewdebugtrans.agreement.AdbDevicesManager
+import com.example.viewdebugtrans.log.Logger
 import com.example.viewdebugtrans.util.getPackageName
 import com.example.viewdebugtrans.util.getViewDebugDir
 import com.intellij.execution.BeforeRunTask
@@ -36,6 +37,7 @@ class ProjectListener : ProjectManagerListener {
             private fun addTsk(settings: RunnerAndConfigurationSettings?) {
                 val c = settings?.configuration ?: return
                 if (c.beforeRunTasks.find { it is SendRunSignalBeforeRunTask } == null) {
+                    Logger.i("ProjectListener", "addTask")
                     c.beforeRunTasks = c.beforeRunTasks +  SendRunSignalBeforeRunTask()
                 }
             }
@@ -96,8 +98,9 @@ class ProjectListener : ProjectManagerListener {
         ): Boolean {
             // 通过断点查看源码，可以通过userData获取当前运行设备
             val devices = environment.getCopyableUserData(DeviceFutures.KEY).devices
-            devices.map { AdbDevicesManager.getDevice(it.serial) }?.forEach {
+            devices.map { AdbDevicesManager.getDevice(it.serial) }.forEach {
                 if (it != null) {
+                    Logger.i("ProjectListener", "executeTask start ${it.serialNumber}")
                     val project = context.project
                     val pkgName = project.getPackageName()
                     val agreement = it.getAgreement(pkgName)
@@ -108,6 +111,9 @@ class ProjectListener : ProjectManagerListener {
                         PushFileManager.pushFile(target = getClearFile(project, agreement.clearSignalFileName),
                             dest = agreement.destDir, type = PushFileManager.TYPE_LAUNCH)
                         PushFileManager.pushApply(false)
+                        Logger.i("ProjectListener", "executeTask end  ${it.serialNumber}")
+                    } else {
+                        Logger.i("ProjectListener", "executeTask skip ${it.serialNumber}")
                     }
 
                 }
