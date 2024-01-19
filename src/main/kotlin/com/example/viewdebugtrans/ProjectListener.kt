@@ -6,14 +6,12 @@ import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.log.Logger
 import com.example.viewdebugtrans.util.getPackageName
 import com.example.viewdebugtrans.util.getViewDebugDir
-import com.intellij.execution.BeforeRunTask
-import com.intellij.execution.BeforeRunTaskProvider
-import com.intellij.execution.RunManagerListener
-import com.intellij.execution.RunnerAndConfigurationSettings
+import com.intellij.execution.*
 import com.intellij.execution.configurations.RunConfiguration
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManagerListener
 import com.intellij.openapi.util.Key
@@ -28,32 +26,65 @@ import kotlin.collections.set
 class ProjectListener : ProjectManagerListener {
     private val projectMap = HashMap<Project, ProjectTable>()
     override fun projectOpened(project: Project) {
+        show(project, "project open: ${project.name}")
         val table = ProjectTable()
         projectMap[project] = table
         AdbDevicesManager.projectOpened(project)
         // val disposable
         val connect = project.messageBus.connect()
         connect.subscribe(RunManagerListener.TOPIC, object : RunManagerListener {
-            private fun addTsk(settings: RunnerAndConfigurationSettings?) {
-                val c = settings?.configuration ?: return
-                if (c.beforeRunTasks.find { it is SendRunSignalBeforeRunTask } == null) {
-                    Logger.i("ProjectListener", "addTask")
-                    c.beforeRunTasks = c.beforeRunTasks +  SendRunSignalBeforeRunTask()
-                }
-            }
+
             override fun runConfigurationSelected(settings: RunnerAndConfigurationSettings?) {
-                addTsk(settings)
+                addTsk(project, settings)
             }
 
             override fun runConfigurationAdded(settings: RunnerAndConfigurationSettings) {
-                addTsk(settings)
+                addTsk(project, settings)
             }
 
             override fun runConfigurationChanged(settings: RunnerAndConfigurationSettings) {
-                addTsk(settings)
+                addTsk(project, settings)
+            }
+
+            override fun runConfigurationChanged(settings: RunnerAndConfigurationSettings, existingId: String?) {
+                addTsk(project, settings)
+            }
+
+            override fun stateLoaded(runManager: RunManager, isFirstLoadState: Boolean) {
+                super.stateLoaded(runManager, isFirstLoadState)
+                show(project, "stateLoaded")
+            }
+
+            override fun beginUpdate() {
+                super.beginUpdate()
+                show(project, "beginUpdate")
+            }
+
+            override fun endUpdate() {
+                super.endUpdate()
+                show(project, "endUpdate")
             }
 
         })
+        DumbService.getInstance(project).runWhenSmart {
+            addTsk(project, RunManagerEx.getInstanceEx(project).selectedConfiguration)
+            val pkgName = project.getPackageName()
+            if (pkgName != null) {
+                AdbDevicesManager.getDevices().forEach {
+                    if (!it.isAgreementConnected(project)) {
+                        AdbDevicesManager.fetchRemoteAgreement(project, it, pkgName)
+                    }
+                }
+            }
+
+        }
+    }
+    private fun addTsk(project: Project, settings: RunnerAndConfigurationSettings?) {
+        show(project, "选中运行配置：${settings?.configuration?.name}")
+        val c = settings?.configuration ?: return
+        if (c.beforeRunTasks.find { it is SendRunSignalBeforeRunTask } == null) {
+            c.beforeRunTasks = c.beforeRunTasks +  SendRunSignalBeforeRunTask()
+        }
     }
 
     override fun projectClosed(project: Project) {
@@ -98,6 +129,7 @@ class ProjectListener : ProjectManagerListener {
         ): Boolean {
             // 通过断点查看源码，可以通过userData获取当前运行设备
             val devices = environment.getCopyableUserData(DeviceFutures.KEY).devices
+            show(context.project, "开始执行清空列表的操作 ${devices.joinToString("|")}")
             devices.map { AdbDevicesManager.getDevice(it.serial) }.forEach {
                 if (it != null) {
                     Logger.i("ProjectListener", "executeTask start ${it.serialNumber}")
@@ -105,17 +137,19 @@ class ProjectListener : ProjectManagerListener {
                     val pkgName = project.getPackageName()
                     val agreement = it.getAgreement(pkgName)
                     val adbPath = AdbDevicesManager.getAdbPath(project)
+
                     if (agreement?.clearSignalFileName != null && !adbPath.isNullOrEmpty()) {
                         // 推送重新运行的信号文件
                         PushFileManager.init(project, it, agreement, adbPath)
                         PushFileManager.pushFile(target = getClearFile(project, agreement.clearSignalFileName),
                             dest = agreement.destDir, type = PushFileManager.TYPE_LAUNCH)
                         PushFileManager.pushApply(false)
-                        Logger.i("ProjectListener", "executeTask end  ${it.serialNumber}")
                     } else {
-                        Logger.i("ProjectListener", "executeTask skip ${it.serialNumber}")
+                        show(project, "没有清空前置条件：${agreement?.clearSignalFileName} $adbPath")
                     }
 
+                } else {
+                    show(context.project, "没有对应的设备：${AdbDevicesManager.getDevices().map { it.serialNumber }.joinToString("|")}")
                 }
 
             }

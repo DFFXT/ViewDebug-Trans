@@ -38,4 +38,8 @@ class AdbDeviceConnectAction(private val device: Device): AnAction("${device.ser
             e.printStackTrace()
         }
     }
+
+    companion object {
+
+    }
 }
