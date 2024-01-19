@@ -1,6 +1,5 @@
 package com.example.viewdebugtrans
 
-import com.android.sdklib.devices.DeviceManager
 import com.android.tools.idea.run.DeviceFutures
 import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.log.Logger
@@ -13,17 +12,16 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManagerListener
+import com.intellij.openapi.project.VetoableProjectManagerListener
 import com.intellij.openapi.util.Key
 import org.jetbrains.kotlin.idea.refactoring.project
 import java.io.File
-import kotlin.collections.HashMap
 import kotlin.collections.set
 
 /**
  * 项目监听，设备监听，同时
  */
-class ProjectListener : ProjectManagerListener {
+class ProjectListener : VetoableProjectManagerListener {
     private val projectMap = HashMap<Project, ProjectTable>()
     override fun projectOpened(project: Project) {
         show(project, "project open: ${project.name}")
@@ -67,6 +65,7 @@ class ProjectListener : ProjectManagerListener {
 
         })
         DumbService.getInstance(project).runWhenSmart {
+            show(project, "ProjectListener runWhenSmart add Task")
             addTsk(project, RunManagerEx.getInstanceEx(project).selectedConfiguration)
             val pkgName = project.getPackageName()
             if (pkgName != null) {
@@ -75,6 +74,8 @@ class ProjectListener : ProjectManagerListener {
                         AdbDevicesManager.fetchRemoteAgreement(project, it, pkgName)
                     }
                 }
+            } else {
+                show(project, "ProjectListener 没有pkgName")
             }
 
         }
@@ -84,6 +85,7 @@ class ProjectListener : ProjectManagerListener {
         val c = settings?.configuration ?: return
         if (c.beforeRunTasks.find { it is SendRunSignalBeforeRunTask } == null) {
             c.beforeRunTasks = c.beforeRunTasks +  SendRunSignalBeforeRunTask()
+            show(project, "add task：++")
         }
     }
 
@@ -100,8 +102,8 @@ class ProjectListener : ProjectManagerListener {
         AdbDevicesManager.projectClosingBeforeSave(project)
     }
 
-    override fun canCloseProject(project: Project): Boolean {
-        return AdbDevicesManager.canCloseProject(project)
+    override fun canClose(project: Project): Boolean {
+        return AdbDevicesManager.canClose(project)
     }
 
     private class ProjectTable {
@@ -128,7 +130,11 @@ class ProjectListener : ProjectManagerListener {
             task: SendRunSignalBeforeRunTask
         ): Boolean {
             // 通过断点查看源码，可以通过userData获取当前运行设备
-            val devices = environment.getCopyableUserData(DeviceFutures.KEY).devices
+            val devices = environment.getCopyableUserData(DeviceFutures.KEY)?.devices
+            if (devices == null) {
+                show(context.project, "executeTask 没有设备")
+                return true
+            }
             show(context.project, "开始执行清空列表的操作 ${devices.joinToString("|")}")
             devices.map { AdbDevicesManager.getDevice(it.serial) }.forEach {
                 if (it != null) {

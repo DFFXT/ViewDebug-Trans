@@ -12,6 +12,7 @@ import com.example.viewdebugtrans.util.launch
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManagerListener
+import com.intellij.openapi.project.VetoableProjectManagerListener
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.android.facet.AndroidFacet
 import org.jetbrains.android.sdk.AndroidSdkUtils
@@ -25,7 +26,7 @@ import kotlin.concurrent.thread
 /**
  * 设备管理
  */
-object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectManagerListener {
+object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, VetoableProjectManagerListener {
 
     private val projects = HashMap<Project, AdbSearchResult>()
     private val devices = ArrayList<Device>()
@@ -259,6 +260,10 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, ProjectMana
 
     override fun projectClosed(project: Project) {
         projects.remove(project)
+    }
+
+    override fun canClose(project: Project): Boolean {
+        return true
     }
 
     private fun requestAgreement(project: Project, device: Device) {
