@@ -2,13 +2,10 @@ package com.example.viewdebugtrans.action
 
 import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.agreement.Device
-import com.example.viewdebugtrans.execute
-import com.example.viewdebugtrans.socket.AdbServerRequest
 import com.example.viewdebugtrans.util.getPackageName
 import com.example.viewdebugtrans.util.showDialog
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.ui.Messages
 
 /**
  * 未配对action
@@ -37,9 +34,5 @@ class AdbDeviceConnectAction(private val device: Device): AnAction("${device.ser
         } catch (e: Exception) {
             e.printStackTrace()
         }
-    }
-
-    companion object {
-
     }
 }

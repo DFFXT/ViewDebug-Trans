@@ -36,7 +36,7 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
     fun compile(project: Project, fileInfo: PushManager.FileInfo, ktFile: KtFile) {
         // 得到KtFile对象，这个对象是kotlin插件中声明的，其类加载器能够加载kotlin插件中的其它类
         this.fileInfo = fileInfo
-        // 通过kotlin插件的类加载器加载KotlinCompilerIde对象
+        /*// 通过kotlin插件的类加载器加载KotlinCompilerIde对象
         val kotlinCompilerIde =
             ktFile!!.javaClass.classLoader.loadClass("org.jetbrains.kotlin.idea.core.KotlinCompilerIde")
         // 加载kotlin编译配置
@@ -80,7 +80,7 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
                 return r.getDeclaredMethod("getResolutionFacade", ktElement).invoke(null, ktFile)
 
             }
-        }
+        }*/
 
         // 实例化KotlinCompilerIde对象
         val configuration = CompilerConfiguration()
@@ -90,16 +90,16 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
         configuration.put(JVMConfigurationKeys.JVM_TARGET, JvmTarget.fromString(jvmTargets.selectedItem as String)!!)
         configuration.languageVersionSettings = ktFile.languageVersionSettings
         val acc = KotlinCompilerIde(ktFile, CompilerConfiguration(), ClassBuilderFactories.BINARIES)
-        val ccc = constructor.newInstance(
+        /*val ccc = constructor.newInstance(
             ktFile,
             compilerConfiguration.newInstance(),
             BINARIES,
             resolutionFacadeProvider,
             false
-        )
+        )*/
 
         // 调用KotlinCompilerIde的compileToBytecode方法将kotlin文件编译成字节码文件，该方法返回List对象，元素类型包含path、bytecode字段
-        val ficompileToDirectoryFiled = kotlinCompilerIde.getDeclaredMethod("compileToBytecode")
+        // val ficompileToDirectoryFiled = kotlinCompilerIde.getDeclaredMethod("compileToBytecode")
         //val g = ficompileToDirectoryFiled.invoke(ccc)
         val g = acc.compileToBytecode()
         val result = g.map {

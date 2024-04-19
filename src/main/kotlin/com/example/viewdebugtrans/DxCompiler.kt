@@ -4,7 +4,8 @@ import com.android.sdklib.BuildToolInfo
 import com.android.tools.idea.sdk.IdeSdks
 import com.example.viewdebugtrans.util.showTip
 import org.jetbrains.android.facet.AndroidFacet
-import org.jetbrains.android.sdk.AndroidSdkData
+// import org.jetbrains.android.sdk.AndroidSdkData
+import org.jetbrains.android.sdk.AndroidSdkUtils
 import java.io.File
 
 abstract class DxCompiler(val module: com.intellij.openapi.module.Module) {
@@ -65,7 +66,10 @@ abstract class DxCompiler(val module: com.intellij.openapi.module.Module) {
         // 获取Android sdk数据，找到dx路径
 
         val androidFacet = AndroidFacet.getInstance(module) ?: return showTip(module.project, "androidFacet null")
-        val dxPath = AndroidSdkData.getSdkData(IdeSdks.getInstance().getAndroidSdkPath()!!)?.targets?.lastOrNull()?.buildToolInfo?.getPath(BuildToolInfo.PathId.ANDROID_RS) ?: return showTip(module.project, "没有找到dx")
+
+        // val dxPath = AndroidSdkData.getSdkData(IdeSdks.getInstance().getAndroidSdkPath()!!)?.targets?.lastOrNull()?.buildToolInfo?.getPath(BuildToolInfo.PathId.ANDROID_RS) ?: return showTip(module.project, "没有找到dx")
+        // android studio 升级了，AndroidSdkData被AndroidSdkUtils代替
+        val dxPath = AndroidSdkUtils.getProjectSdkData(module.project)?.targets?.lastOrNull()?.buildToolInfo?.getPath(BuildToolInfo.PathId.ANDROID_RS) ?: return showTip(module.project, "没有找到dx")
         val dx = File(dxPath)
         val dir = dx.parent
         val d8 = File(dir, "SdkConstants.FN_DX.replace(,)")

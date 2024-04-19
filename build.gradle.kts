@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.example.viewDebug"
-version = "1.3"
+version = "1.4"
 
 repositories {
     mavenCentral()
@@ -20,7 +20,7 @@ intellij {
     // 2022.2.5
     // 2022.3.1
     // 2023.2.2
-    version.set("2022.3.1")
+    version.set("2023.2.6")
     type.set("IC") // Target IDE Platform
 
     // 依赖的插件，idea插件网站查看，对应plugin id
@@ -40,7 +40,7 @@ tasks {
     patchPluginXml {
         /*sinceBuild.set("212")
         untilBuild.set("222.*")*/
-        sinceBuild.set("209")
+        sinceBuild.set("232")
         untilBuild.set("252.*")
     }
 

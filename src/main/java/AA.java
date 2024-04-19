@@ -24,7 +24,7 @@ public class AA {
      *
      * @param host 域名
      * @param path 路径
-     * @param port 端口，https：443
+     * @param port 端口，https443
      */
     public static void request(String host, String path, int port) {
         try {
