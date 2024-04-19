@@ -54,7 +54,9 @@ object Main {
     fun execute(cmdArray: Array<String>, dir: File? = null): String {
         val p = Runtime.getRuntime().exec(cmdArray)
         // 需要读取errorStream，否则缓冲区堆积，导致死锁
-        val errorStream = p.errorStream.readBytes()
+        thread {
+            val errorStream = p.errorStream.readBytes()
+        }
         val result = String(p.inputStream.readBytes(), Charset.forName("gbk"))
         // println(result)
         return result
