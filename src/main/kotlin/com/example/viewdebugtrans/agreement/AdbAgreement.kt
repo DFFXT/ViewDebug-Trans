@@ -7,7 +7,11 @@ data class AdbAgreement(
     val listenFile: String,
     val destDir: String,
     // 清空信号文件名称
-    val clearSignalFileName: String?
+    val clearSignalFileName: String?,
+    // 远程ServerSocket服务端口
+    val serverPort: Int?,
+    // 远程ServerSocket客户端口
+    val clientPort: Int?,
 ) {
 
     /**
@@ -35,7 +39,9 @@ data class AdbAgreement(
                 pkgName = map["pkgName"] ?: "",
                 listenFile = map["listenFile"] ?: "",
                 destDir = map["destDir"] ?: "",
-                clearSignalFileName = map["clearSignalFileName"]
+                clearSignalFileName = map["clearSignalFileName"],
+                serverPort = map["serverPort"]?.toIntOrNull(),
+                clientPort = map["clientPort"]?.toIntOrNull(),
             )
         }
     }
