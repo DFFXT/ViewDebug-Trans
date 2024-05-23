@@ -18,28 +18,13 @@ class ProjectAdbClientSocket(port: Int) {
     private val input by lazy { DataInputStream(socket.getInputStream()) }
     private var responseBuffer = ByteArray(1024)
 
-    init {
-        thread {
-            while (true){
-                val id = input.readInt()
-                if (id > 0) {
-                    val responseLength = input.readInt()
-                    val buffer = getBuffer(responseLength)
-                    input.readBulk(buffer, 0, responseLength)
-                    val response = String(buffer, 0, responseLength)
-                }
-
-            }
-        }
-    }
-
     @Synchronized
     fun request(cmd: String, content: String, onResponse: (String) -> Unit) {
         val cmdBytes = cmd.toByteArray()
         val contentBytes = content.toByteArray()
         // 标识符
         output.writeInt(cmd.length)
-        output.write(content.length)
+        output.writeInt(content.length)
         // 请求命令，类似于url
         output.write(cmdBytes)
         // 请求体
