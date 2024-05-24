@@ -6,17 +6,19 @@ import com.example.viewdebugtrans.ProjectListener
 import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.execute
 import com.example.viewdebugtrans.show
+import com.example.viewdebugtrans.socket.biz.BizRequestOpenFile
 import com.example.viewdebugtrans.socket.core.Callback
 import com.example.viewdebugtrans.socket.core.ProjectAdbClientSocket
 import com.example.viewdebugtrans.socket.core.ProjectAdbServerSocket
 import com.example.viewdebugtrans.util.getPackageName
+import com.intellij.openapi.project.Project
 import java.net.ServerSocket
 
 /**
  * adb请求
  * 需要监听device中的进程情况，如果进程被杀死然后重新打开，需要重新建立连接
  */
-object AdbServerRequest {
+class AdbServerRequest(private val project: Project) {
     private var localPort = 13345
     private val adbSockets = HashMap<ConnectPair, SocketPair>()
     init {
@@ -70,7 +72,8 @@ object AdbServerRequest {
             execute(arrayOf("adb", "-s", deviceId, "forward", "tcp:$portServer", "tcp:$remoteClientPort"))
             try {
                 // 暂时只监听server
-                val server = ProjectAdbServerSocket(portServer)
+                val server = ProjectAdbServerSocket(project, portServer)
+                server.addBizRoute("open", BizRequestOpenFile::class.java)
                 server.setDisconnectedListener {
                     onDisconnected(pkgName, deviceId, portClient, portServer)
                 }

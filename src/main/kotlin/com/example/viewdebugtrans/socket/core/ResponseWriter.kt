@@ -1,4 +1,4 @@
-package com.example.viewdebug.server
+package com.example.viewdebugtrans.socket.core
 
 /**
  * 返回数据操作接口

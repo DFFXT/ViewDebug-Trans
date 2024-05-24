@@ -1,16 +1,16 @@
 package com.example.viewdebugtrans.socket.core
 
+import com.example.viewdebugtrans.socket.biz.BizRequest404Route
+import com.example.viewdebugtrans.socket.biz.BizRoute
+import com.intellij.openapi.project.Project
 import java.io.DataInputStream
-import java.io.DataOutputStream
-import java.io.InputStream
 import java.net.Socket
-import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
 /**
  * 服务端，监听app发送的信息
  */
-class ProjectAdbServerSocket(port: Int) {
+class ProjectAdbServerSocket(project: Project, port: Int) {
     private val socket: Socket = Socket("127.0.0.1", port)
     private val input by lazy { DataInputStream(socket.getInputStream()) }
     private var responseBuffer = ByteArray(1024)
@@ -36,7 +36,7 @@ class ProjectAdbServerSocket(port: Int) {
                         // 构建路由处理器
                         val routeClass = bizMap.getOrDefault(routeId, BizRequest404Route::class.java)
                         // 处理器处理对应请求
-                        routeClass.newInstance().onRequest(routeId, content, ResponseWriterImpl(socket))
+                        routeClass.getConstructor(Project::class.java).newInstance(project).onRequest(routeId, content, ResponseWriterImpl(socket))
                     }
 
 

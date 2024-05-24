@@ -5,10 +5,13 @@ import com.example.viewdebugtrans.ShowLogAction
 import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.agreement.Device
 import com.example.viewdebugtrans.util.getPackageName
+import com.intellij.ide.actions.OpenFileAction
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.EditorFactory
 
 /**
  * action group

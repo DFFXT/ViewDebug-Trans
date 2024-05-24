@@ -1,5 +1,6 @@
 package com.example.viewdebugtrans.action
 
+import com.example.viewdebugtrans.ProjectListener
 import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.agreement.Device
 import com.example.viewdebugtrans.execute
@@ -34,9 +35,10 @@ class AdbDeviceConnectAction(private val device: Device): AnAction("${device.ser
                 } else {
                     showDialog(e.project, "配对成功", "成功", arrayOf("确定"), 0)
                     if (agreement.serverPort != null && agreement.clientPort != null) {
-                        AdbServerRequest.create(pkgName, device.serialNumber, agreement.serverPort, agreement.clientPort)
+                        val adbServerRequest = ProjectListener.getProjectTable(e.project!!).adbServerRequest
+                        adbServerRequest.create(pkgName, device.serialNumber, agreement.serverPort, agreement.clientPort)
                         thread {
-                            AdbServerRequest.send(pkgName, device.serialNumber, "test", "contet") {
+                            adbServerRequest.send(pkgName, device.serialNumber, "test", "contet") {
 
                             }
                         }

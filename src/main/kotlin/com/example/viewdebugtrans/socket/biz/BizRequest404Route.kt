@@ -1,9 +1,10 @@
-package com.example.viewdebugtrans.socket.core
+package com.example.viewdebugtrans.socket.biz
 
-import com.example.viewdebug.server.ResponseWriter
+import com.example.viewdebugtrans.socket.core.ResponseWriter
 import com.example.viewdebugtrans.show
+import com.intellij.openapi.project.Project
 
-internal class BizRequest404Route: BizRoute {
+internal class BizRequest404Route(project: Project): BizRoute(project) {
 
     override fun onRequest(routeId: String, content: String, response: ResponseWriter) {
         show(null, "404 for $routeId")

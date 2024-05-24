@@ -3,6 +3,7 @@ package com.example.viewdebugtrans
 import com.android.tools.idea.run.DeviceFutures
 import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.log.Logger
+import com.example.viewdebugtrans.socket.AdbServerRequest
 import com.example.viewdebugtrans.util.getPackageName
 import com.example.viewdebugtrans.util.getViewDebugDir
 import com.intellij.execution.*
@@ -24,10 +25,15 @@ import kotlin.collections.set
 
 // todo 期待优化，大部分类不用单例模式，而是每个project单独new 一个，这样就不用进行project的判断了
 class ProjectListener : VetoableProjectManagerListener {
-    private val projectMap = HashMap<Project, ProjectTable>()
+
+    companion object {
+        private val projectMap = HashMap<Project, ProjectTable>()
+
+        fun getProjectTable(project: Project): ProjectTable = projectMap[project]!!
+    }
     override fun projectOpened(project: Project) {
         show(project, "project open: ${project.name}")
-        val table = ProjectTable()
+        val table = ProjectTable(project)
         projectMap[project] = table
         AdbDevicesManager.projectOpened(project)
         // val disposable
@@ -108,8 +114,8 @@ class ProjectListener : VetoableProjectManagerListener {
         return AdbDevicesManager.canClose(project)
     }
 
-    private class ProjectTable {
-        var runConfigurationDispose: Disposable? = null
+    class ProjectTable(project: Project) {
+        val adbServerRequest by lazy { AdbServerRequest(project) }
     }
 
     class SendRunSignalBeforeRunTaskProvider : BeforeRunTaskProvider<SendRunSignalBeforeRunTask>() {

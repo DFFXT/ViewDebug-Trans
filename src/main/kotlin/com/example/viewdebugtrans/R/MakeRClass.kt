@@ -1,7 +1,5 @@
 package com.example.viewdebugtrans.R
 
-import com.example.viewdebugtrans.show
-import com.example.viewdebugtrans.socket.core.SimpleSocket
 import com.intellij.openapi.roots.ModuleRootManager
 import java.io.File
 
