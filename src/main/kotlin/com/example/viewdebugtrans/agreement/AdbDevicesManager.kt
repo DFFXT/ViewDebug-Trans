@@ -42,6 +42,13 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, VetoablePro
     }
 
     /**
+     * 获取所有打开的项目
+     */
+    fun getProjects(): Set<Project> {
+        return projects.keys
+    }
+
+    /**
      * 协议目录
      */
     private fun getAgreementFolder(project: Project): File {

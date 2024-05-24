@@ -21,6 +21,8 @@ import kotlin.collections.set
 /**
  * 项目监听，设备监听，同时
  */
+
+// todo 期待优化，大部分类不用单例模式，而是每个project单独new 一个，这样就不用进行project的判断了
 class ProjectListener : VetoableProjectManagerListener {
     private val projectMap = HashMap<Project, ProjectTable>()
     override fun projectOpened(project: Project) {

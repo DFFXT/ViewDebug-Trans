@@ -19,6 +19,32 @@ ApplicationManager.getApplication().runReadAction
 DumbService.getInstance(module.project).runReadActionInSmartMode
 
 ///----Android更多的是分析安卓插件【org.jetbrains.android】的源码
+
+AndroidDebugBridge是个好动西，很多关于adb的监听
+// adb 设备监听
+myDeviceChangeListener = new AndroidDebugBridge.IDeviceChangeListener() {
+      @Override
+      public void deviceConnected(@NotNull IDevice device) {
+        updateTree();
+      }
+
+      @Override
+      public void deviceDisconnected(@NotNull IDevice device) {
+        updateTree();
+      }
+
+      // 设备状态变化会回调，比如打开了一个app，changeMask为1，不同的changeMask可以区分是不同的事件
+      @Override
+      public void deviceChanged(@NotNull IDevice device, int changeMask) {
+        updateTree();
+      }
+    };
+    AndroidDebugBridge.addDeviceChangeListener(myDeviceChangeListener);
+
+
+// Client监听，Client代表一个可调试进程
+AndroidDebugBridge.addClientChangeListener(myClientChangeListener);
+
 Android
 AndroidFacet
 GradleAndroidModel 是个好东西，包含了各种gradle和android信息

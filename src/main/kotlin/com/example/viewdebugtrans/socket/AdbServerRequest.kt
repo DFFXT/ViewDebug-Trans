@@ -1,23 +1,66 @@
 package com.example.viewdebugtrans.socket
 
+import com.android.ddmlib.AndroidDebugBridge
+import com.android.ddmlib.Client
+import com.example.viewdebugtrans.ProjectListener
+import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.execute
 import com.example.viewdebugtrans.show
 import com.example.viewdebugtrans.socket.core.Callback
 import com.example.viewdebugtrans.socket.core.ProjectAdbClientSocket
 import com.example.viewdebugtrans.socket.core.ProjectAdbServerSocket
+import com.example.viewdebugtrans.util.getPackageName
 import java.net.ServerSocket
 
 /**
  * adb请求
+ * 需要监听device中的进程情况，如果进程被杀死然后重新打开，需要重新建立连接
  */
 object AdbServerRequest {
     private var localPort = 13345
     private val adbSockets = HashMap<ConnectPair, SocketPair>()
+    init {
+        AndroidDebugBridge.addClientChangeListener { client, changeMask ->
+            val pkgName = client.clientData.packageName
+            // 存在一个问题，Android studio中选中了其它运行配置，然后此时设备上进程重新打开了，此时无法连接设备，因为包名判断不通过
+            AdbDevicesManager.getProjects().forEach {project ->
+                if (project.getPackageName() == pkgName) {
+                    AdbDevicesManager.getDevices().forEach {device ->
+                        // 判断是否已经断开连接了
+                        if (!adbSockets.containsKey(ConnectPair(pkgName, device.serialNumber))) {
+                            // 不存在 project-devices->pkgName的连接
+                            // 尝试重新连接
+                            AdbDevicesManager.fetchRemoteAgreement(project, device, pkgName)
+                            val agreement = device.getAgreement(pkgName)
+                            if (agreement != null) {
+                                // 拿到了协议文档 而且端口号正常，可以连接
+                                if (agreement.serverPort != null && agreement.clientPort != null) {
+                                    create(pkgName, device.serialNumber, agreement.serverPort, agreement.clientPort)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
+    /**
+     * 连接断开
+     * @param localTransport1 本地转发端口，需要关闭
+     */
+    private fun onDisconnected(pkgName: String, deviceId: String, localTransport1: Int, localTransport2: Int) {
+        adbSockets.remove(ConnectPair(pkgName, deviceId))
+        execute(arrayOf("adb", "-s", deviceId, "forward", "--remove", "tcp:$localTransport1"))
+        execute(arrayOf("adb", "-s", deviceId, "forward", "--remove", "tcp:$localTransport2"))
+    }
 
     /**
      * @param remoteClientPort 远程客户端端口，用于本地服务端
      * @param remoteServerPort 远程服务端端口，用于本地客户端
      */
+    @Synchronized
     fun create(pkgName: String, deviceId: String, remoteServerPort: Int, remoteClientPort: Int) {
         val pair = ConnectPair(pkgName, deviceId)
         if (!adbSockets.containsKey(pair)) {
@@ -26,7 +69,13 @@ object AdbServerRequest {
             execute(arrayOf("adb", "-s", deviceId, "forward", "tcp:$portClient", "tcp:$remoteServerPort"))
             execute(arrayOf("adb", "-s", deviceId, "forward", "tcp:$portServer", "tcp:$remoteClientPort"))
             try {
-                adbSockets[pair] = SocketPair(ProjectAdbServerSocket(portServer), ProjectAdbClientSocket(portClient))
+                // 暂时只监听server
+                val server = ProjectAdbServerSocket(portServer)
+                server.setDisconnectedListener {
+                    onDisconnected(pkgName, deviceId, portClient, portServer)
+                }
+                val client = ProjectAdbClientSocket(portClient)
+                adbSockets[pair] = SocketPair(server, client)
             } catch (e: Exception) {
                 e.printStackTrace()
                 show(e)
