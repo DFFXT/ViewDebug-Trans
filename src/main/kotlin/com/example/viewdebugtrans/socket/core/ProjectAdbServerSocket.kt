@@ -29,9 +29,14 @@ class ProjectAdbServerSocket(project: Project, port: Int) {
                         var buffer = getBuffer(cmdLength)
                         input.readBulk(buffer, 0, cmdLength)
                         val routeId = String(buffer, 0, cmdLength)
-                        buffer = getBuffer(contentLength)
-                        input.readBulk(buffer, 0, contentLength)
-                        val content = String(buffer, 0, contentLength)
+                        var content = ""
+                        // 有内容才读取
+                        if (contentLength > 0) {
+                            buffer = getBuffer(contentLength)
+                            input.readBulk(buffer, 0, contentLength)
+                            content = String(buffer, 0, contentLength)
+                        }
+
 
                         // 构建路由处理器
                         val routeClass = bizMap.getOrDefault(routeId, BizRequest404Route::class.java)

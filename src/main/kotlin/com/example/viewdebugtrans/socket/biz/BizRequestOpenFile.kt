@@ -22,6 +22,7 @@ internal class BizRequestOpenFile(project: Project): BizRoute(project) {
                 OpenFileAction.openFile(files.first(), project)
             }
         }
+        response.writeEmpty200Ok()
         /*EditorActionManager.getInstance()
         EditorFactory.getInstance().createDocument("")
         RevealFileAction.openFile(File(""))
