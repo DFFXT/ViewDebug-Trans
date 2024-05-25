@@ -1,28 +1,46 @@
 package com.example.viewdebugtrans.socket.biz
 
+import com.example.viewdebugtrans.show
 import com.example.viewdebugtrans.socket.core.ResponseWriter
+import com.google.gson.Gson
 import com.intellij.ide.actions.OpenFileAction
-import com.intellij.ide.actions.RevealFileAction
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.EditorFactory
-import com.intellij.openapi.editor.actionSystem.EditorActionManager
-import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiDocumentManager
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.impl.JavaPsiFacadeEx
 import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
-import java.io.File
 
+/**
+ * content：
+ * {
+ *  type:"class|xml",
+ *  name:"fileName|className"
+ * }
+ */
 internal class BizRequestOpenFile(project: Project): BizRoute(project) {
+    companion object {
+        val gson = Gson()
+    }
     override fun onRequest(routeId: String, content: String, response: ResponseWriter) {
+        val ct = gson.fromJson(content, Content::class.java)
         ApplicationManager.getApplication().invokeLater {
-            val files = FilenameIndex.getVirtualFilesByName(content, GlobalSearchScope.allScope(project))
-            if (files.isNotEmpty()) {
-                OpenFileAction.openFile(files.first(), project)
+            var vf:VirtualFile? = null
+            if (ct.type == "xml") {
+                val files = FilenameIndex.getVirtualFilesByName(ct.name, GlobalSearchScope.allScope(project))
+                vf = files.firstOrNull()
+            } else if(ct.type == "class") {
+                vf = JavaPsiFacadeEx.getInstance(project).findClass(ct.name, GlobalSearchScope.allScope(project))?.containingFile?.virtualFile
+            }
+            if (vf != null) {
+                OpenFileAction.openFile(vf, project)
+            } else {
+                show(project, "没有找到这个文件：${ct.name}")
             }
         }
         response.writeEmpty200Ok()
+
+
         /*EditorActionManager.getInstance()
         EditorFactory.getInstance().createDocument("")
         RevealFileAction.openFile(File(""))
@@ -31,4 +49,6 @@ internal class BizRequestOpenFile(project: Project): BizRoute(project) {
         FileDocumentManager.getInstance().*/
 
     }
+
+    private class Content(val type: String, val name: String)
 }
