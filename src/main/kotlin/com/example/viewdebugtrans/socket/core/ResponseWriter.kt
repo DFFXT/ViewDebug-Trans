@@ -21,6 +21,11 @@ internal interface ResponseWriter {
     fun write(byteArray: ByteArray)
 
     /**
+     * 写入200 OK，不能包含内容
+     */
+    fun writeEmpty200Ok()
+
+    /**
      * 写入结束，关闭连接
      */
     fun finish()
