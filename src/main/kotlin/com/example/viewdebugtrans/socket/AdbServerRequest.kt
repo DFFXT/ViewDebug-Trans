@@ -6,6 +6,7 @@ import com.example.viewdebugtrans.ProjectListener
 import com.example.viewdebugtrans.agreement.AdbDevicesManager
 import com.example.viewdebugtrans.execute
 import com.example.viewdebugtrans.show
+import com.example.viewdebugtrans.socket.biz.BizRequestHeartRoute
 import com.example.viewdebugtrans.socket.biz.BizRequestOpenFile
 import com.example.viewdebugtrans.socket.core.Callback
 import com.example.viewdebugtrans.socket.core.ProjectAdbClientSocket
@@ -74,6 +75,7 @@ class AdbServerRequest(private val project: Project) {
                 // 暂时只监听server
                 val server = ProjectAdbServerSocket(project, portServer)
                 server.addBizRoute("open", BizRequestOpenFile::class.java)
+                server.addBizRoute("heart", BizRequestHeartRoute::class.java)
                 server.setDisconnectedListener {
                     onDisconnected(pkgName, deviceId, portClient, portServer)
                 }
