@@ -65,11 +65,11 @@ fun Project.getPackageName(): String? {
     if (ms.size >= 2) {
         return AndroidFacet.getInstance(ms[ms.size - 2])?.getPackageForApplication()
     }*/
-    val r = RunManagerEx.getInstanceEx(this).selectedConfiguration?.configuration
+    val r = RunManagerEx.getInstanceEx(this).selectedConfiguration?.configuration ?: return null
     /*if (r is AndroidRunConfiguration) {
         r.appId
     }*/
-    return this.getProjectSystem().getApplicationIdProvider(r!!)?.packageName
+    return this.getProjectSystem().getApplicationIdProvider(r)?.packageName
     // getProjectSystem().getModuleSystem(ms[1]).applicationRClassConstantIds
     //return null
 }
