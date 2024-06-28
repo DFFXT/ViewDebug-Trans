@@ -36,6 +36,7 @@ class AdbDeviceConnectAction(private val device: Device): AnAction("${device.ser
                     showDialog(e.project, "配对成功", "成功", arrayOf("确定"), 0)
                     if (agreement.serverPort != null && agreement.clientPort != null) {
                         val adbServerRequest = ProjectListener.getProjectTable(e.project!!).adbServerRequest
+                        // todo 判断应用是否启动
                         adbServerRequest.create(pkgName, device.serialNumber, agreement.serverPort, agreement.clientPort)
                         thread {
                             adbServerRequest.send(pkgName, device.serialNumber, "test", "contet") {

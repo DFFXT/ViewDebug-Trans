@@ -37,8 +37,8 @@ class AdbSendGroup : ActionGroup() {
         for (d in devices) {
             if (d.online) {
                 val agreement = d.getAgreement(e?.project?.getPackageName())
-                if (false) {
-                    actions.add(AdbDeviceSendGroup(d, agreement!!))
+                if (agreement != null) {
+                    actions.add(AdbDeviceSendGroup(d, agreement))
                 } else {
                     actions.add(AdbDeviceConnectAction(d))
                 }

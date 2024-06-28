@@ -115,7 +115,7 @@ class ProjectListener : VetoableProjectManagerListener {
     }
 
     class ProjectTable(project: Project) {
-        val adbServerRequest by lazy { AdbServerRequest(project) }
+        val adbServerRequest = AdbServerRequest(project)
     }
 
     class SendRunSignalBeforeRunTaskProvider : BeforeRunTaskProvider<SendRunSignalBeforeRunTask>() {

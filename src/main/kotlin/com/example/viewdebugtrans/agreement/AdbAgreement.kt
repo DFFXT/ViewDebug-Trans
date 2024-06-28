@@ -1,5 +1,7 @@
 package com.example.viewdebugtrans.agreement
 
+import com.example.viewdebugtrans.util.Utils
+
 data class AdbAgreement(
     // 格式 0.20.4-1-g87125dd 或者不带后续 0.20.4
     val version: String,
@@ -43,6 +45,15 @@ data class AdbAgreement(
                 serverPort = map["serverPort"]?.toIntOrNull(),
                 clientPort = map["clientPort"]?.toIntOrNull(),
             )
+        }
+
+        fun parse(str: String): AdbAgreement? {
+            try {
+                return parse(Utils.stringToMap(str))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return null
         }
     }
 }
