@@ -24,6 +24,7 @@ internal class BizRequestOpenFile(project: Project): BizRoute(project) {
     }
     override fun onRequest(routeId: String, content: String, response: ResponseWriter) {
         val ct = gson.fromJson(content, Content::class.java)
+        show(project, content)
         ApplicationManager.getApplication().invokeLater {
             var vf:VirtualFile? = null
             if (ct.type == "xml") {

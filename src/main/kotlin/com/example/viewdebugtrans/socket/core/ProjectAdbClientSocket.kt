@@ -1,5 +1,6 @@
 package com.example.viewdebugtrans.socket.core
 
+import java.io.Closeable
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.InputStream
@@ -12,7 +13,7 @@ import kotlin.concurrent.thread
  * 客户端
  */
 typealias Callback = ((String)-> Unit)
-class ProjectAdbClientSocket(port: Int) {
+class ProjectAdbClientSocket(port: Int): Closeable {
     private val socket: Socket = Socket("127.0.0.1", port)
     private val output by lazy { DataOutputStream(socket.getOutputStream()) }
     private val input by lazy { DataInputStream(socket.getInputStream()) }
@@ -43,6 +44,13 @@ class ProjectAdbClientSocket(port: Int) {
             responseBuffer = ByteArray(size)
         }
         return responseBuffer
+    }
+
+    override fun close() {
+        try {
+            socket.close()
+        } catch (e: Exception) {
+        }
     }
 }
 

@@ -1,14 +1,12 @@
 package com.example.viewdebugtrans
 
-import com.example.viewdebugtrans.action.AdbSendGroup
-import com.example.viewdebugtrans.agreement.AdbDevicesManager
-import com.example.viewdebugtrans.socket.AdbServerRequest
-import com.example.viewdebugtrans.util.getViewDebugDir
+import com.intellij.ide.actions.OpenFileAction
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
-import java.io.File
+import com.intellij.testFramework.LightVirtualFile
 
 class ShowLogAction: AnAction("显示日志") {
     companion object {
@@ -21,12 +19,23 @@ class ShowLogAction: AnAction("显示日志") {
         }
     }
     override fun actionPerformed(e: AnActionEvent) {
-        var msg = builder.toString()
-        if (msg.isEmpty()) {
-            msg = "NULL"
+        //var msg = builder.toString()
+        //Messages.showDialog(e.project, msg, "编译日志", arrayOf("确定"), 0, null)
+        ApplicationManager.getApplication().runWriteAction {
+            val p = e.project
+            val  vf = object: LightVirtualFile("view-Trans-plug-log", builder.toString()) {
+                override fun isWritable(): Boolean {
+                    return false
+                }
+            }
+            if (p != null) {
+                ApplicationManager.getApplication().invokeLater {
+                    OpenFileAction.openFile(vf, p)
+                }
+            }
         }
-        Messages.showDialog(e.project, msg, "编译日志", arrayOf("确定"), 0, null)
-        File(e.project?.getViewDebugDir(), "view-debug-log.txt").writeText(msg)
+
+        // File(e.project?.getViewDebugDir(), "view-debug-log.txt").writeText(msg)
     }
 }
 /*class DestInputAction : AnAction("设置输出路径") {

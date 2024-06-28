@@ -3,6 +3,7 @@ package com.example.viewdebugtrans.socket.core
 import com.example.viewdebugtrans.socket.biz.BizRequest404Route
 import com.example.viewdebugtrans.socket.biz.BizRoute
 import com.intellij.openapi.project.Project
+import java.io.Closeable
 import java.io.DataInputStream
 import java.net.Socket
 import kotlin.concurrent.thread
@@ -10,7 +11,7 @@ import kotlin.concurrent.thread
 /**
  * 服务端，监听app发送的信息
  */
-class ProjectAdbServerSocket(project: Project, port: Int) {
+class ProjectAdbServerSocket(project: Project, port: Int):Closeable {
     private val socket: Socket = Socket("127.0.0.1", port)
     private val input by lazy { DataInputStream(socket.getInputStream()) }
     private var responseBuffer = ByteArray(1024)
@@ -70,5 +71,12 @@ class ProjectAdbServerSocket(project: Project, port: Int) {
             responseBuffer = ByteArray(size)
         }
         return responseBuffer
+    }
+
+    override fun close() {
+        try {
+            socket.close()
+        } catch (e: Exception) {
+        }
     }
 }

@@ -99,7 +99,8 @@ class ProjectListener : VetoableProjectManagerListener {
 
     override fun projectClosed(project: Project) {
         AdbDevicesManager.projectClosed(project)
-        projectMap.remove(project)
+        val table = projectMap.remove(project)
+        table?.adbServerRequest?.close()
     }
 
     override fun projectClosing(project: Project) {
