@@ -34,9 +34,11 @@ class KotlinPushInterceptor : IPushInterceptor {
             val makeRClass = MakeRClass()
 
             makeRClass.make(module, originPath) {
+                show(project, fileInfo.path+" mr结束")
                 // 经过编译的产物路径
                 try {
                     CompileFileAndSend(module).compile(project, fileInfo)
+                    show(project, fileInfo.path +"： 生成文件")
                 } catch (e: Exception) {
                     e.printStackTrace()
                     show(e)

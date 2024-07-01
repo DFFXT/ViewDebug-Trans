@@ -17,7 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import org.jetbrains.android.facet.AndroidFacet
 import org.jetbrains.android.sdk.AndroidSdkUtils
 import org.jetbrains.android.sdk.AndroidSdkUtils.AdbSearchResult
-import org.jetbrains.kotlin.android.model.AndroidModuleInfoProvider
+//import org.jetbrains.kotlin.android.model.AndroidModuleInfoProvider
+import org.jetbrains.kotlin.android.synthetic.idea.AndroidModuleInfoProvider
 import java.io.File
 import java.util.*
 import kotlin.collections.set
@@ -280,7 +281,9 @@ object AdbDevicesManager : AndroidDebugBridge.IDeviceChangeListener, VetoablePro
         }
         // 获取传输协议
         appModules.forEach {
+            // todo 使用其它方式实现
             val pkgName = AndroidModuleInfoProvider.getInstance(it)?.getApplicationPackage()
+            project.getPackageName()
             if (pkgName != null) {
                 fetchRemoteAgreement(
                     project,

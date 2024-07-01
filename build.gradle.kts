@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.example.viewDebug"
-version = "1.5"
+version = "1.6"
 
 repositories {
     mavenCentral()
@@ -20,12 +20,16 @@ intellij {
     // 2022.2.5
     // 2022.3.1
     // 2023.2.2
-    version.set("2023.2.6")
+    // 2023.2.6
+    version.set("2024.1.1")
     type.set("IC") // Target IDE Platform
 
     // 依赖的插件，idea插件网站查看，对应plugin id
-    plugins.set(listOf("org.jetbrains.kotlin", "com.intellij.gradle", "org.jetbrains.android"))
+    // IDEA 2024.1.1 版本进行了变更，没有自带org.jetbrains.android插件，需要自己指定版本
+    // todo 需要验证，当Android studio升级后，这里指定了Android插件版本会产生什么影响
+    plugins.set(listOf("org.jetbrains.kotlin", "com.intellij.gradle", "org.jetbrains.android:241.15989.150"))
 }
+
 
 tasks {
     // Set the JVM compatibility versions
@@ -40,8 +44,10 @@ tasks {
     patchPluginXml {
         /*sinceBuild.set("212")
         untilBuild.set("222.*")*/
-        sinceBuild.set("232")
-        untilBuild.set("252.*")
+        // 由于241版本大变更，不再兼容前面的版本了
+        sinceBuild.set("241")
+        // 指定一个很高的版本，放在安装不上，安装后有问题再说
+        untilBuild.set("282.*")
     }
 
     signPlugin {

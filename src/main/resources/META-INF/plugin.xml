@@ -14,10 +14,10 @@
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
+    在代码编辑框内右键，选择push To Device，进行设备配对。<br>
     在代码编辑框内右键，选择push To Device，将当前文件发送到设备。<br>
-    支持xml（layout、drawable）、kotlin文件以及部分java文件。<br>
-    由于java是通过转kotlin来编译的，当java中使用了kotlin文件中的顶级属性时，无法正常转换。<br>
-    可通过Kotlin自带的Convert Java File to Kotlin File功能查看失败原因。<br>
+    支持xml（layout、drawable）、kotlin、Java<br>
+    当连接后，设备端可通过弹窗上的跳转按钮，直接定位到对应的xml文件或者代码文件
   ]]></description>
 
     <!-- Product and plugin compatibility requirements.

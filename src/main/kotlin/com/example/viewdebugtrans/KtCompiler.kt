@@ -9,13 +9,18 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
+import com.jetbrains.rd.util.string.printToString
+import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.components.KtCompilationResult
 import org.jetbrains.kotlin.codegen.ClassBuilderFactories
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.config.JVMConfigurationKeys
 import org.jetbrains.kotlin.config.JvmTarget
 import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.idea.actions.bytecode.KotlinBytecodeToolWindow
+import org.jetbrains.kotlin.idea.actions.bytecode.KotlinBytecodeToolWindow.Companion.compileSingleFile
 import org.jetbrains.kotlin.idea.base.projectStructure.languageVersionSettings
-import org.jetbrains.kotlin.idea.core.KotlinCompilerIde
+//import org.jetbrains.kotlin.idea.core.KotlinCompilerIde
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.org.objectweb.asm.*
 import org.jetbrains.org.objectweb.asm.commons.AdviceAdapter
@@ -89,14 +94,33 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
         val jvmTargets = ComboBox(JvmTarget.supportedValues().map { it.description }.toTypedArray())
         configuration.put(JVMConfigurationKeys.JVM_TARGET, JvmTarget.fromString(jvmTargets.selectedItem as String)!!)
         configuration.languageVersionSettings = ktFile.languageVersionSettings
-        val acc = KotlinCompilerIde(ktFile, CompilerConfiguration(), ClassBuilderFactories.BINARIES)
-        /*val ccc = constructor.newInstance(
+
+
+        val result = analyze(ktFile) {
+           try {
+                compileSingleFile(ktFile, configuration)?.first
+            } catch (e: Exception) {
+                e.printStackTrace()
+               KtCompilationResult.Failure(emptyList())
+            }
+        }
+
+        if (result is KtCompilationResult.Failure) {
+            // 置空
+            fileInfo.path = ""
+            showTip(project, "编译错误")
+            show(project, result.errors.firstOrNull()?.factoryName ?: "null error")
+            return
+        }
+
+        /*val acc = KotlinBytecodeToolWindow.getBytecodeForFile(ktFile, CompilerConfiguration(), ClassBuilderFactories.BINARIES)
+        val ccc = constructor.newInstance(
             ktFile,
             compilerConfiguration.newInstance(),
             BINARIES,
             resolutionFacadeProvider,
             false
-        )*/
+        )
 
         // 调用KotlinCompilerIde的compileToBytecode方法将kotlin文件编译成字节码文件，该方法返回List对象，元素类型包含path、bytecode字段
         // val ficompileToDirectoryFiled = kotlinCompilerIde.getDeclaredMethod("compileToBytecode")
@@ -106,14 +130,19 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
             // 取元素的path、bytecode字段
             Pair(it.path, it.bytecode)
         }
-        show(project, result.size.toString())
+        show(project, result.size.toString())*/
         val jarPath = module.project.getViewDebugDir().absolutePath + File.separator + "view-debug.jar"
 
         // 输出文本
         val generatedDex = getOutputFileName(File(fileInfo.path))
 
+        // 转换对象
+        result as KtCompilationResult.Success
+        val toZip = result.output.map {
+            Pair(it.path, it.content)
+        }
         // 输出jar文件
-        output(result, jarPath, generatedDex)
+        output(toZip, jarPath, generatedDex)
 
         // dxCompileJar(jarPath, generatedDex)
         File(jarPath).let {
@@ -189,7 +218,11 @@ class KtCompiler(module: com.intellij.openapi.module.Module) : DxCompiler(module
             builder.mode = CompilationMode.DEBUG
             builder.programConsumer = consumer
             builder.minApiLevel = 13
-            builder.disableDesugaring = true
+            // todo 重要！！
+            // todo 重要！！
+            // todo 重要！！
+            // 这里不能禁止脱糖，否则低版本执行生成的dex时会执行崩溃
+            // builder.disableDesugaring = true
             D8.run(builder.build())
             return consumer.bytes
         } catch (e: Exception) {

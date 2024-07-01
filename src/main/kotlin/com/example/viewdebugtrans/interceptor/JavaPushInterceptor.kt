@@ -1,6 +1,6 @@
 package com.example.viewdebugtrans.interceptor
 
-import com.example.viewdebugtrans.action.JavaToKotlin
+
 import com.example.viewdebugtrans.action.PushManager
 import com.example.viewdebugtrans.agreement.AdbAgreement
 import com.example.viewdebugtrans.agreement.Device
@@ -11,6 +11,8 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.psi.*
+import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.base.util.module
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
 import org.jetbrains.kotlin.name.FqName
@@ -38,21 +40,14 @@ class JavaPushInterceptor : IPushInterceptor {
             val module = file?.module ?: return
             val f = file
             if (f is PsiJavaFile) {
-                /*val importList = LinkedList<String?>()
-                f.importList?.allImportStatements?.forEach {
-                    importList.add(it.importReference?.text)
-                }*/
-                /*if (lineNumbers.isNotEmpty()) {
-                    // 无法转换成kotlin
-                    fileInfo.breakPush("java 代码存在静态导入（import static），line: ${lineNumbers.joinToString(separator = ",")}, 无法正确转换为kotlin")
-                    return
-                }*/
-                val result = JavaToKotlin.convertFiles(
-                    listOf(f),
-                    project,
-                    module
-                )
+
                 WriteCommandAction.runWriteCommandAction(project) {
+                    // JavaToKotlinAction需要放到EDT线程执行
+                    val result = JavaToKotlinAction.Handler.convertFiles(
+                        listOf(f),
+                        project,
+                        module
+                    )
                     val javaFile = f.virtualFile
                     var name = javaFile.nameWithoutExtension
                     // 防止name重复
@@ -62,6 +57,9 @@ class JavaPushInterceptor : IPushInterceptor {
                     javaFile.parent.findChild(name)
                     val ktFile = javaFile.parent.createChildData(null, "$name.kt")
                     ktFile.setBinaryContent(result.first().toByteArray())
+
+                    val newKtFile:KtFile =
+                        PsiFileFactory.getInstance(project).createFileFromText(ktFile.path, KotlinLanguage.INSTANCE, result.first()) as KtFile
 
 
                    /* val imports = importList.filterNotNull().map { FqName(it) }
@@ -73,6 +71,11 @@ class JavaPushInterceptor : IPushInterceptor {
                     }*/
                     fileInfo.originPath = ktFile.path
                     fileInfo.path = ktFile.path
+                    // todo 重要，这里需要进行一次analyze，将刚刚生成的kotlin文件导入编译系统，否则无法编译成字节码
+                    // 进行一次空analyze就行
+                    // idea中，这些大部分方法都是同步方法
+                    analyze(newKtFile) {
+                    }
                 }
 
                 tagJava(fileInfo)

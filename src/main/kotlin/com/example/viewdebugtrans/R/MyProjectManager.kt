@@ -3,6 +3,7 @@ package com.example.viewdebugtrans.R
 import com.android.SdkConstants
 import com.example.viewdebugtrans.show
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.roots.*
@@ -10,6 +11,9 @@ import com.intellij.openapi.vfs.VirtualFile
 import org.jetbrains.android.util.AndroidBuildCommonUtils
 import kotlin.concurrent.thread
 
+/**
+ * 高版本后，不需要添加额外的R依赖了
+ */
 object MyProjectManager {
 
     private val rModuleName = "module-R-tmp"
@@ -77,14 +81,17 @@ object MyProjectManager {
             val libModifiableModel = lib.modifiableModel
             // 获取当前模块的R文件依赖
             val jars = getRDependencyUrl(module)
+            if (jars.isEmpty()) {
+                show(null, "没有找到R依赖")
+                callback(module, runnable)
+                return
+            }
             jars.map { it.url }.forEach {
                 show(null, "找到R依赖：$it")
                 // 给创建的library添加root目录，类型为字节码
                 libModifiableModel.addRoot(it, OrderRootType.CLASSES)
             }
-            if (jars.isEmpty()) {
-                show(null, "没有找到R依赖")
-            }
+
             // 获取library对相应的orderEntry对象
             val orderEntry = it.findLibraryOrderEntry(lib)!!
             // 设置scope属性
@@ -110,16 +117,7 @@ object MyProjectManager {
                 }
             }
 
-            // 新开线程，确保不阻塞原线程（runReadActionInSmartMode会阻塞当前线程）
-            DumbService.getInstance(module.project).runReadActionInSmartMode {
-                try {
-                    runnable.run()
-                } catch (e: Exception) {
-                    show(e)
-                } finally {
-                    removeRDependency(module)
-                }
-            }
+            callback(module, runnable)
             /*thread {
                 // 新开线程，确保不阻塞原线程（runReadActionInSmartMode会阻塞当前线程）
                 DumbService.getInstance(module.project).runReadActionInSmartMode {
@@ -132,6 +130,19 @@ object MyProjectManager {
                     }
                 }
             }*/
+        }
+    }
+
+    private fun callback(module: Module, runnable: Runnable) {
+        // 新开线程，确保不阻塞原线程（runReadActionInSmartMode会阻塞当前线程）
+        DumbService.getInstance(module.project).runReadActionInSmartMode {
+            try {
+                runnable.run()
+            } catch (e: Exception) {
+                show(e)
+            } finally {
+                removeRDependency(module)
+            }
         }
     }
 
